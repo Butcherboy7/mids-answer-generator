@@ -99,8 +99,8 @@ def generate_answers_page():
     # Generate button
     if st.button("Generate Answers", type="primary", disabled=not question_bank):
         if question_bank:
-            # Reset approval state for new generation
-            st.session_state.questions_approved = False
+            # Start the generation process immediately without requiring approval
+            # Users can edit questions after they see the extraction
             st.session_state.editing_mode = False
             st.session_state.edited_questions = []
             generate_answers(question_bank, college_notes, subject, mode, custom_prompt)
@@ -241,9 +241,11 @@ def generate_answers(question_bank, college_notes, subject, mode, custom_prompt)
                     st.session_state.editing_mode = False
                     st.rerun()
         
-        # Wait for user approval before continuing
+        # Auto-approve questions for immediate processing (users can edit if needed)
         if not st.session_state.get('questions_approved', False):
-            return
+            # Auto-approve if user hasn't explicitly requested editing
+            if not st.session_state.get('editing_mode', False):
+                st.session_state.questions_approved = True
         
         # Use stored questions for processing
         questions = st.session_state.extracted_questions
@@ -293,9 +295,9 @@ def generate_answers(question_bank, college_notes, subject, mode, custom_prompt)
             if remaining < 10:
                 st.warning(f"⚠️ Only {remaining} requests remaining")
             
-            estimated_requests = len(questions)
+            estimated_requests = (len(questions) + batch_size - 1) // batch_size  # Actual API calls needed
             if estimated_requests > remaining:
-                st.error(f"❌ Not enough requests remaining for {estimated_requests} questions")
+                st.error(f"❌ Not enough requests remaining. Need {estimated_requests} API calls but only {remaining} remaining")
                 st.info("💡 Tip: Restart the app to reset the session limit")
                 return
         

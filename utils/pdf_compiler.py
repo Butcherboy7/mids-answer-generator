@@ -280,11 +280,22 @@ class PDFCompiler:
         return paragraphs
     
     def _clean_text_for_pdf(self, text: str) -> str:
-        """Clean and format text for PDF generation"""
+        """Clean and format text for PDF generation with proper HTML tag handling"""
         
-        # Replace markdown-style formatting with ReportLab formatting
+        # First, fix any malformed HTML tags by removing all HTML formatting
+        # This prevents ReportLab parser errors
+        import html
+        
+        # Remove any existing HTML tags completely to avoid conflicts
+        text = re.sub(r'<[^>]+>', '', text)
+        
+        # Escape HTML entities
+        text = html.escape(text)
+        
+        # Now apply clean ReportLab formatting
+        # Replace markdown-style formatting with proper ReportLab tags
         text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', text)  # Bold
-        text = re.sub(r'\*(.*?)\*', r'<i>\1</i>', text)      # Italic
+        text = re.sub(r'\*(.*?)\*(?!\*)', r'<i>\1</i>', text)  # Italic (not part of **)
         
         # Handle bullet points
         text = re.sub(r'^[\-\*]\s+', '• ', text, flags=re.MULTILINE)
@@ -295,4 +306,52 @@ class PDFCompiler:
         # Clean up extra whitespace
         text = re.sub(r'\s+', ' ', text).strip()
         
+        # Ensure no unclosed tags by checking for balanced tags
+        text = self._balance_html_tags(text)
+        
         return text
+    
+    def _balance_html_tags(self, text: str) -> str:
+        """Ensure HTML tags are properly balanced to prevent parser errors"""
+        
+        # Stack to track open tags
+        tag_stack = []
+        result = ""
+        i = 0
+        
+        while i < len(text):
+            if text[i] == '<':
+                # Find the end of the tag
+                tag_end = text.find('>', i)
+                if tag_end != -1:
+                    tag = text[i:tag_end+1]
+                    
+                    if tag.startswith('</'):
+                        # Closing tag
+                        tag_name = tag[2:-1]
+                        if tag_stack and tag_stack[-1] == tag_name:
+                            tag_stack.pop()
+                            result += tag
+                        # Ignore unmatched closing tags
+                    elif not tag.endswith('/>'):
+                        # Opening tag
+                        tag_name = tag[1:-1]
+                        if tag_name in ['b', 'i', 'u']:  # Only allow safe tags
+                            tag_stack.append(tag_name)
+                            result += tag
+                    
+                    i = tag_end + 1
+                else:
+                    # Malformed tag, skip the '<'
+                    result += '&lt;'
+                    i += 1
+            else:
+                result += text[i]
+                i += 1
+        
+        # Close any remaining open tags
+        while tag_stack:
+            tag_name = tag_stack.pop()
+            result += f'</{tag_name}>'
+        
+        return result

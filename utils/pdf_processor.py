@@ -132,16 +132,87 @@ class PDFProcessor:
         return self._chunk_content(all_content)
     
     def _parse_questions(self, text: str) -> List[str]:
-        """Parse text to identify and extract individual questions"""
+        """Enhanced question parsing with better pattern recognition"""
+        
+        # Improved question patterns to catch more formats
+        enhanced_patterns = [
+            r'^\d+\.\s+(.+)',  # 1. Question
+            r'^\d+\)\s+(.+)',  # 1) Question  
+            r'^Q\d+[\.\)]\s+(.+)',  # Q1. or Q1) Question
+            r'^Question\s+\d+[\.\)]\s+(.+)',  # Question 1. Question
+            r'^\(\d+\)\s+(.+)',  # (1) Question
+            r'^\d+[\.\s]+([A-Z].+)',  # 1. Capital letter start
+            r'^[A-Z]\d+[\.\)]\s+(.+)',  # A1. or B1) Question
+            r'^\d+\s*[-–]\s*(.+)',  # 1 - Question or 1 – Question
+        ]
         
         questions = []
-        lines = [line.strip() for line in text.split('\n') if line.strip()]
-        
-        if not lines:
-            return questions
-        
+        lines = text.split('\n')
         current_question = ""
-        question_started = False
+        
+        for i, line in enumerate(lines):
+            line = line.strip()
+            if not line:
+                continue
+                
+            # Check each pattern
+            question_found = False
+            for pattern in enhanced_patterns:
+                match = re.match(pattern, line, re.IGNORECASE)
+                if match:
+                    # Save previous question if exists
+                    if current_question:
+                        questions.append(current_question.strip())
+                    
+                    # Start new question
+                    if match.groups():
+                        current_question = match.group(1).strip()
+                    else:
+                        # Remove numbering manually if no groups
+                        current_question = re.sub(r'^\d+[\.\)]\s*|^Q\d+[\.\)]\s*|^Question\s+\d+[\.\)]\s*|^\(\d+\)\s*', '', line).strip()
+                    
+                    question_found = True
+                    break
+            
+            if not question_found and current_question:
+                # Check if this line continues the current question
+                if not re.match(r'^\d+[\.\)]\s*|^Q\d+[\.\)]\s*|^Question\s+\d+[\.\)]\s*|^\(\d+\)\s*', line):
+                    # This line continues the question
+                    current_question += " " + line
+        
+        # Add the last question
+        if current_question:
+            questions.append(current_question.strip())
+        
+        # Enhanced filtering and cleaning
+        cleaned_questions = []
+        for q in questions:
+            # Remove extra whitespace and clean up
+            q = re.sub(r'\s+', ' ', q).strip()
+            
+            # Skip if too short or just numbers/symbols
+            if len(q) < 15 or re.match(r'^[\d\.\)\(\s\-–]+$', q):
+                continue
+                
+            # Skip common non-question text
+            skip_patterns = [
+                r'^(page|section|chapter|unit|marks?|time|duration)',
+                r'^(note|instruction|direction)',
+                r'^(answer|solution|hint)',
+                r'^(total|maximum|minimum)',
+                r'^(name|roll|class|date)'
+            ]
+            
+            should_skip = False
+            for skip_pattern in skip_patterns:
+                if re.match(skip_pattern, q.lower()):
+                    should_skip = True
+                    break
+            
+            if not should_skip:
+                cleaned_questions.append(q)
+        
+        return cleaned_questions
         
         for i, line in enumerate(lines):
             # Check if line starts with a question pattern

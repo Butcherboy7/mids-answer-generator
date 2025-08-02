@@ -1,0 +1,123 @@
+
+📋 Configuration
+📚 Subject
+
+Computer Science
+🎯 Answer Mode
+
+
+Understand Mode
+
+
+Exam Mode
+
+🎓 College Answer Generator
+Upload your question bank PDF and get comprehensive AI-generated answers instantly!
+
+📄 Upload Documents
+Question Bank (Required)
+
+1st Mid Important Questions.pdf
+Drag and drop file here
+Limit 200MB per file • PDF
+1st Mid Important Questions.pdf
+246.7KB
+College Notes (Optional)
+
+No file chosen
+Drag and drop files here
+Limit 200MB per file • PDF
+⚙️ Settings
+Custom Instructions
+
+Enter any specific instructions for answer generation...
+
+📄 Extracting text from your document...
+
+🔍 Searching for questions in the document...
+
+✅ Found 12 questions!
+
+📋 Preview of 12 extracted questions
+
+🤖 Generating comprehensive AI answers...
+
+✅ Generated 12 comprehensive answers!
+
+Response parsing incomplete. Using fallback method.
+
+📄 Creating your professional answer PDF...
+
+❌ An error occurred: Error compiling PDF: paragraph text '<para>1. <b>Cell Wall:</b> This is a rigid layer external to the cell membrane, providing structural support and protection against osmotic lysis. In most bacteria, it is primarily composed of <b>peptidoglycan</b> (also known as murein), a polymer of sugars and amino acids. The composition of the cell wall is a primary basis for differentiating bacteria into two major groups: <i> <b></i>Gram-positive bacteria</b>: Possess a thick layer of peptidoglycan, interwoven with teichoic acids. They retain the crystal violet stain in the Gram staining procedure. <i> <b></i>Gram-negative bacteria</b>: Have a much thinner peptidoglycan layer, which is sandwiched between an inner cytoplasmic membrane and an outer membrane. The outer membrane contains <b>lipopolysaccharides (LPS)</b>, which act as endotoxins and porins for molecular transport. They do not retain the crystal violet stain. 2. <b>Cell Membrane (Plasma Membrane):</b> Located immediately inside the cell wall, this is a selectively permeable phospholipid bilayer. It regulates the passage of substances into and out of the cell, serves as the site for metabolic processes like respiration and photosynthesis (in photosynthetic bacteria), and contains various proteins involved in transport, signaling, and energy generation. 3. <b>Cytoplasm:</b> A gel-like substance filling the cell, enclosed by the cell membrane. It is the site of most cellular activities, including metabolic pathways. It contains water, enzymes, nutrients, wastes, and various organelles. 4. <b>Nucleoid:</b> Unlike eukaryotic cells, bacteria lack a membrane-bound nucleus. Instead, their genetic material, typically a single, circular <b>chromosome</b> composed of double-stranded DNA, is located in a dense, irregularly shaped region called the nucleoid. 5. <b>Ribosomes:</b> These are small, granular structures responsible for <b>protein synthesis (translation)</b>. Bacterial ribosomes are 70S (compared to 80S in eukaryotes), consisting of 30S and 50S subunits. 6. <b>Plasmids:</b> Many bacteria also contain small, extra-chromosomal, circular DNA molecules called plasmids. Plasmids often carry genes that confer advantageous traits, such as <b>antibiotic resistance</b>, virulence factors, or metabolic capabilities (e.g., genes for degrading unusual compounds). They can be transferred between bacteria, contributing to genetic diversity and adaptation. 7. <b>External Structures (Appendages):</b> <i> <b>Flagella (singular: flagellum):</b> Long, whip-like appendages used for <b>motility</b>. They rotate like propellers to push the bacterium through its liquid environment, exhibiting </i>chemotaxis* (movement in response to chemical stimuli). * <b>Pili (singular: pilus) or Fimbriae:</b> Shorter, hair-like appendages. <b>Fimbriae</b> are numerous and help bacteria adhere to surfaces, host cells, or other bacteria, facilitating colonization and biofilm formation. <b>Sex pili</b> (or F pilus) are longer and fewer, involved in <b>conjugation</b>, a process of genetic material transfer between bacteria. * <b>Capsule/Slime Layer:</b> An outer, gelatinous layer composed of polysaccharides or polypeptides. A well-organized, tightly attached layer is a <b>capsule</b>, offering protection against phagocytosis by host immune cells and desiccation. A loose, diffuse layer is a <b>slime layer</b>, primarily involved in adherence. 8. <b>Inclusions (Storage Granules):</b> Various aggregates of metabolic products or nutrients stored within the cytoplasm, such as polyhydroxybutyrate (carbon/energy storage), glycogen, sulfur granules, or gas vacuoles (for buoyancy in aquatic bacteria). 9. <b>Endospores (in some species):</b> Highly resistant, dormant structures formed by certain Gram-positive bacteria (e.g., <i>Bacillus</i> and <i>Clostridium</i>) in response to harsh environmental conditions. Endospores are remarkable for their extreme resistance to heat, radiation, chemicals, and desiccation, allowing the bacteria to survive for extended periods until conditions become favorable for germination.</para>' caused exception Parse error: saw </i> instead of expected </b>
+
+🔧 Technical Details
+
+Traceback (most recent call last):
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/reportlab/platypus/paraparser.py", line 3218, in parse
+    self.feed(text)
+  File "/nix/store/7d088dip86hlzri9sk0h78b63yfmx0a0-python3-3.11.13/lib/python3.11/html/parser.py", line 110, in feed
+    self.goahead(0)
+  File "/nix/store/7d088dip86hlzri9sk0h78b63yfmx0a0-python3-3.11.13/lib/python3.11/html/parser.py", line 172, in goahead
+    k = self.parse_endtag(i)
+        ^^^^^^^^^^^^^^^^^^^^
+  File "/nix/store/7d088dip86hlzri9sk0h78b63yfmx0a0-python3-3.11.13/lib/python3.11/html/parser.py", line 413, in parse_endtag
+    self.handle_endtag(elem)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/reportlab/platypus/paraparser.py", line 3254, in handle_endtag
+    end()
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/reportlab/platypus/paraparser.py", line 2612, in end_i
+    self._pop('i')
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/reportlab/platypus/paraparser.py", line 3066, in _pop
+    raise ValueError('Parse error: saw </%s> instead of expected </%s>' % (tag,frag.__tag__))
+ValueError: Parse error: saw </i> instead of expected </b>
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/runner/workspace/utils/pdf_compiler.py", line 118, in compile_answers_pdf
+    story.extend(self._create_answers_section(answers))
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/utils/pdf_compiler.py", line 243, in _create_answers_section
+    formatted_answer = self._format_answer_text(answer_data['answer'])
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/utils/pdf_compiler.py", line 278, in _format_answer_text
+    paragraphs.append(Paragraph(formatted_text, self.answer_style))
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/reportlab/platypus/paragraph.py", line 1859, in __init__
+    self._setup(text, style, bulletText or getattr(style,'bulletText',None), frags, cleanBlockQuotedText)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/reportlab/platypus/paragraph.py", line 1880, in _setup
+    style, frags, bulletTextFrags = _parser.parse(text,style)
+                                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/reportlab/platypus/paraparser.py", line 3220, in parse
+    annotateException('\nparagraph text %s caused exception' % ascii(text))
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/reportlab/lib/utils.py", line 1176, in annotateException
+    rl_reraise(t,t(sep.join((_ for _ in (msg,str(v),postMsg) if _))),b)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/reportlab/lib/utils.py", line 138, in rl_reraise
+    raise v.with_traceback(b)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/reportlab/platypus/paraparser.py", line 3218, in parse
+    self.feed(text)
+  File "/nix/store/7d088dip86hlzri9sk0h78b63yfmx0a0-python3-3.11.13/lib/python3.11/html/parser.py", line 110, in feed
+    self.goahead(0)
+  File "/nix/store/7d088dip86hlzri9sk0h78b63yfmx0a0-python3-3.11.13/lib/python3.11/html/parser.py", line 172, in goahead
+    k = self.parse_endtag(i)
+        ^^^^^^^^^^^^^^^^^^^^
+  File "/nix/store/7d088dip86hlzri9sk0h78b63yfmx0a0-python3-3.11.13/lib/python3.11/html/parser.py", line 413, in parse_endtag
+    self.handle_endtag(elem)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/reportlab/platypus/paraparser.py", line 3254, in handle_endtag
+    end()
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/reportlab/platypus/paraparser.py", line 2612, in end_i
+    self._pop('i')
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/reportlab/platypus/paraparser.py", line 3066, in _pop
+    raise ValueError('Parse error: saw </%s> instead of expected </%s>' % (tag,frag.__tag__))
+ValueError: 
+paragraph text '<para>1. <b>Cell Wall:</b> This is a rigid layer external to the cell membrane, providing structural support and protection against osmotic lysis. In most bacteria, it is primarily composed of <b>peptidoglycan</b> (also known as murein), a polymer of sugars and amino acids. The composition of the cell wall is a primary basis for differentiating bacteria into two major groups: <i> <b></i>Gram-positive bacteria</b>*: Possess a thick layer of peptidoglycan, interwoven with teichoic acids. They retain the crystal violet stain in the Gram staining procedure. <i> <b></i>Gram-negative bacteria</b>*: Have a much thinner peptidoglycan layer, which is sandwiched between an inner cytoplasmic membrane and an outer membrane. The outer membrane contains <b>lipopolysaccharides (LPS)</b>, which act as endotoxins and porins for molecular transport. They do not retain the crystal violet stain. 2. <b>Cell Membrane (Plasma Membrane):</b> Located immediately inside the cell wall, this is a selectively permeable phospholipid bilayer. It regulates the passage of substances into and out of the cell, serves as the site for metabolic processes like respiration and photosynthesis (in photosynthetic bacteria), and contains various proteins involved in transport, signaling, and energy generation. 3. <b>Cytoplasm:</b> A gel-like substance filling the cell, enclosed by the cell membrane. It is the site of most cellular activities, including metabolic pathways. It contains water, enzymes, nutrients, wastes, and various organelles. 4. <b>Nucleoid:</b> Unlike eukaryotic cells, bacteria lack a membrane-bound nucleus. Instead, their genetic material, typically a single, circular <b>chromosome</b> composed of double-stranded DNA, is located in a dense, irregularly shaped region called the nucleoid. 5. <b>Ribosomes:</b> These are small, granular structures responsible for <b>protein synthesis (translation)</b>. Bacterial ribosomes are 70S (compared to 80S in eukaryotes), consisting of 30S and 50S subunits. 6. <b>Plasmids:</b> Many bacteria also contain small, extra-chromosomal, circular DNA molecules called plasmids. Plasmids often carry genes that confer advantageous traits, such as <b>antibiotic resistance</b>, virulence factors, or metabolic capabilities (e.g., genes for degrading unusual compounds). They can be transferred between bacteria, contributing to genetic diversity and adaptation. 7. <b>External Structures (Appendages):</b> <i> <b>Flagella (singular: flagellum):</b> Long, whip-like appendages used for <b>motility</b>. They rotate like propellers to push the bacterium through its liquid environment, exhibiting </i>chemotaxis* (movement in response to chemical stimuli). * <b>Pili (singular: pilus) or Fimbriae:</b> Shorter, hair-like appendages. <b>Fimbriae</b> are numerous and help bacteria adhere to surfaces, host cells, or other bacteria, facilitating colonization and biofilm formation. <b>Sex pili</b> (or F pilus) are longer and fewer, involved in <b>conjugation</b>, a process of genetic material transfer between bacteria. * <b>Capsule/Slime Layer:</b> An outer, gelatinous layer composed of polysaccharides or polypeptides. A well-organized, tightly attached layer is a <b>capsule</b>, offering protection against phagocytosis by host immune cells and desiccation. A loose, diffuse layer is a <b>slime layer</b>, primarily involved in adherence. 8. <b>Inclusions (Storage Granules):</b> Various aggregates of metabolic products or nutrients stored within the cytoplasm, such as polyhydroxybutyrate (carbon/energy storage), glycogen, sulfur granules, or gas vacuoles (for buoyancy in aquatic bacteria). 9. <b>Endospores (in some species):</b> Highly resistant, dormant structures formed by certain Gram-positive bacteria (e.g., <i>Bacillus</i> and <i>Clostridium</i>) in response to harsh environmental conditions. Endospores are remarkable for their extreme resistance to heat, radiation, chemicals, and desiccation, allowing the bacteria to survive for extended periods until conditions become favorable for germination.</para>' caused exception Parse error: saw </i> instead of expected </b>
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/runner/workspace/app.py", line 160, in <module>
+    pdf_path = pdf_compiler.compile_answers_pdf(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/utils/pdf_compiler.py", line 126, in compile_answers_pdf
+    raise Exception(f"Error compiling PDF: {str(e)}")
+Exception: Error compiling PDF: 
+paragraph text '<para>1. <b>Cell Wall:</b> This is a rigid layer external to the cell membrane, providing structural support and protection against osmotic lysis. In most bacteria, it is primarily composed of <b>peptidoglycan</b> (also known as murein), a polymer of sugars and amino acids. The composition of the cell wall is a primary basis for differentiating bacteria into two major groups: <i> <b></i>Gram-positive bacteria</b>*: Possess a thick layer of peptidoglycan, interwoven with teichoic acids. They retain the crystal violet stain in the Gram staining procedure. <i> <b></i>Gram-negative bacteria</b>*: Have a much thinner peptidoglycan layer, which is sandwiched between an inner cytoplasmic membrane and an outer membrane. The outer membrane contains <b>lipopolysaccharides (LPS)</b>, which act as endotoxins and porins for molecular transport. They do not retain the crystal violet stain. 2. <b>Cell Membrane (Plasma Membrane):</b> Located immediately inside the cell wall, this is a selectively permeable phospholipid bilayer. It regulates the passage of substances into and out of the cell, serves as the site for metabolic processes like respiration and photosynthesis (in photosynthetic bacteria), and contains various proteins involved in transport, signaling, and energy generation. 3. <b>Cytoplasm:</b> A gel-like substance filling the cell, enclosed by the cell membrane. It is the site of most cellular activities, including metabolic pathways. It contains water, enzymes, nutrients, wastes, and various organelles. 4. <b>Nucleoid:</b> Unlike eukaryotic cells, bacteria lack a membrane-bound nucleus. Instead, their genetic material, typically a single, circular <b>chromosome</b> composed of double-stranded DNA, is located in a dense, irregularly shaped region called the nucleoid. 5. <b>Ribosomes:</b> These are small, granular structures responsible for <b>protein synthesis (translation)</b>. Bacterial ribosomes are 70S (compared to 80S in eukaryotes), consisting of 30S and 50S subunits. 6. <b>Plasmids:</b> Many bacteria also contain small, extra-chromosomal, circular DNA molecules called plasmids. Plasmids often carry genes that confer advantageous traits, such as <b>antibiotic resistance</b>, virulence factors, or metabolic capabilities (e.g., genes for degrading unusual compounds). They can be transferred between bacteria, contributing to genetic diversity and adaptation. 7. <b>External Structures (Appendages):</b> <i> <b>Flagella (singular: flagellum):</b> Long, whip-like appendages used for <b>motility</b>. They rotate like propellers to push the bacterium through its liquid environment, exhibiting </i>chemotaxis* (movement in response to chemical stimuli). * <b>Pili (singular: pilus) or Fimbriae:</b> Shorter, hair-like appendages. <b>Fimbriae</b> are numerous and help bacteria adhere to surfaces, host cells, or other bacteria, facilitating colonization and biofilm formation. <b>Sex pili</b> (or F pilus) are longer and fewer, involved in <b>conjugation</b>, a process of genetic material transfer between bacteria. * <b>Capsule/Slime Layer:</b> An outer, gelatinous layer composed of polysaccharides or polypeptides. A well-organized, tightly attached layer is a <b>capsule</b>, offering protection against phagocytosis by host immune cells and desiccation. A loose, diffuse layer is a <b>slime layer</b>, primarily involved in adherence. 8. <b>Inclusions (Storage Granules):</b> Various aggregates of metabolic products or nutrients stored within the cytoplasm, such as polyhydroxybutyrate (carbon/energy storage), glycogen, sulfur granules, or gas vacuoles (for buoyancy in aquatic bacteria). 9. <b>Endospores (in some species):</b> Highly resistant, dormant structures formed by certain Gram-positive bacteria (e.g., <i>Bacillus</i> and <i>Clostridium</i>) in response to harsh environmental conditions. Endospores are remarkable for their extreme resistance to heat, radiation, chemicals, and desiccation, allowing the bacteria to survive for extended periods until conditions become favorable for germination.</para>' caused exception Parse error: saw </i> instead of expected </b>

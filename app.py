@@ -141,19 +141,56 @@ if st.button("🚀 Generate Answers", type="primary", disabled=not question_bank
                         for i, q in enumerate(batch_questions)
                     ]
                     
-                    # Generate answers for this batch
-                    batch_answers = ai_generator.generate_multi_question_answer(
-                        questions_batch=questions_data,
-                        subject=subject,
-                        mode=mode,
-                        custom_prompt=custom_prompt,
-                        reference_content=reference_content
-                    )
+                    # Generate answers for this batch with error handling
+                    try:
+                        batch_answers = ai_generator.generate_multi_question_answer(
+                            questions_batch=questions_data,
+                            subject=subject,
+                            mode=mode,
+                            custom_prompt=custom_prompt,
+                            reference_content=reference_content
+                        )
+                        
+                        # Check if all answers are error messages
+                        error_count = sum(1 for ans in batch_answers if 
+                                        "error" in ans["answer"].lower() or 
+                                        "unavailable" in ans["answer"].lower() or
+                                        "failed" in ans["answer"].lower())
+                        
+                        if error_count == len(batch_answers):
+                            st.warning(f"Batch {batch_num + 1} failed due to API issues. Continuing with remaining batches...")
+                        else:
+                            st.success(f"Batch {batch_num + 1} completed successfully!")
+                            
+                    except Exception as e:
+                        st.error(f"Critical error in batch {batch_num + 1}: {str(e)}")
+                        # Create fallback error answers
+                        batch_answers = [
+                            {
+                                "question": qdata["question"],
+                                "answer": f"Unable to generate answer due to system error: {str(e)}",
+                                "question_number": qdata["question_number"]
+                            }
+                            for qdata in questions_data
+                        ]
                     
                     answers.extend(batch_answers)
                 
                 progress_bar.progress(1.0)
-                status_text.success(f"✅ Generated {len(answers)} comprehensive answers!")
+                
+                # Count successful vs failed answers
+                successful_answers = sum(1 for ans in answers if 
+                                       not any(keyword in ans["answer"].lower() 
+                                             for keyword in ["error", "unavailable", "failed", "unable"]))
+                
+                if successful_answers == len(answers):
+                    status_text.success(f"✅ Generated {len(answers)} comprehensive answers!")
+                elif successful_answers > 0:
+                    status_text.warning(f"⚠️ Generated {successful_answers} answers successfully, {len(answers) - successful_answers} failed due to API issues.")
+                    st.info("💡 You can try regenerating the failed answers by running the process again.")
+                else:
+                    status_text.error("❌ Failed to generate answers due to API issues. Please try again in a few minutes.")
+                    st.stop()
                 
                 # Step 5: Create PDF
                 st.info("📄 Creating your professional answer PDF...")

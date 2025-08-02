@@ -90,46 +90,69 @@ class AIGenerator:
             reference_content=reference_content
         )
         
-        try:
-            # Add rate limiting delay
-            time.sleep(self.rate_limit_delay)
-            
-            # Track request
-            self.request_count += 1
-            
-            response = self.client.models.generate_content(
-                model=self.model,
-                contents=multi_prompt
-            )
-            
-            response_text = response.text or "Unable to generate answers for these questions."
-            
-            # Parse the response to extract individual answers
-            parsed_answers = self._parse_multi_question_response(response_text, questions_batch)
-            
-            return parsed_answers
-            
-        except Exception as e:
-            # Handle rate limiting and other API errors
-            if "rate limit" in str(e).lower() or "quota" in str(e).lower():
-                st.warning(f"API rate limit reached. Waiting 5 seconds before retry...")
-                time.sleep(5)
-                # Retry once
-                try:
-                    response = self.client.models.generate_content(
-                        model=self.model,
-                        contents=multi_prompt
-                    )
-                    response_text = response.text or "Unable to generate answers for these questions."
-                    parsed_answers = self._parse_multi_question_response(response_text, questions_batch)
-                    return parsed_answers
-                except Exception as retry_e:
-                    error_msg = f"API limit exceeded. Please try again later. Error: {str(retry_e)}"
-                    return [{"question": q["question"], "answer": error_msg, "question_number": q["question_number"]} for q in questions_batch]
-            else:
-                st.error(f"Error generating answers: {str(e)}")
-                error_msg = f"Error generating answer: {str(e)}"
-                return [{"question": q["question"], "answer": error_msg, "question_number": q["question_number"]} for q in questions_batch]
+        # Implement robust retry mechanism for API errors
+        max_retries = 3
+        base_delay = 2
+        
+        for attempt in range(max_retries):
+            try:
+                # Add rate limiting delay
+                if attempt > 0:
+                    # Exponential backoff for retries
+                    delay = base_delay * (2 ** attempt)
+                    st.info(f"Retrying API call (attempt {attempt + 1}/{max_retries}) after {delay} seconds...")
+                    time.sleep(delay)
+                else:
+                    time.sleep(self.rate_limit_delay)
+                
+                # Track request
+                self.request_count += 1
+                
+                response = self.client.models.generate_content(
+                    model=self.model,
+                    contents=multi_prompt
+                )
+                
+                response_text = response.text or "Unable to generate answers for these questions."
+                
+                # Parse the response to extract individual answers
+                parsed_answers = self._parse_multi_question_response(response_text, questions_batch)
+                
+                return parsed_answers
+                
+            except Exception as e:
+                error_msg = str(e).lower()
+                
+                # Check for specific error types
+                if "500" in error_msg or "internal" in error_msg:
+                    if attempt < max_retries - 1:
+                        st.warning(f"Google API server error (500). Retrying in {base_delay * (2 ** attempt)} seconds...")
+                        continue
+                    else:
+                        st.error("Google API is temporarily unavailable. Please try again in a few minutes.")
+                        error_response = "Google's AI service is temporarily unavailable due to server issues. Please try generating answers again in a few minutes."
+                        
+                elif "rate limit" in error_msg or "quota" in error_msg:
+                    if attempt < max_retries - 1:
+                        st.warning(f"API rate limit reached. Waiting longer before retry...")
+                        time.sleep(10)  # Longer delay for rate limits
+                        continue
+                    else:
+                        error_response = "API rate limit exceeded. Please wait a few minutes before trying again."
+                        
+                elif "authentication" in error_msg or "api key" in error_msg:
+                    st.error("API key issue detected. Please check your Gemini API key.")
+                    error_response = "API authentication failed. Please verify your Gemini API key is valid and has sufficient quota."
+                    
+                else:
+                    if attempt < max_retries - 1:
+                        st.warning(f"API error: {str(e)}. Retrying...")
+                        continue
+                    else:
+                        error_response = f"API error after {max_retries} attempts: {str(e)}"
+                
+                # Return error responses for all questions in batch
+                return [{"question": q["question"], "answer": error_response, "question_number": q["question_number"]} for q in questions_batch]
     
     def _construct_prompt(self, question: str, subject: str, mode: str, 
                          custom_prompt: str = "", reference_content: str = "") -> str:

@@ -17,6 +17,10 @@ if 'history' not in st.session_state:
     st.session_state.history = HistoryManager()
 if 'questions_approved' not in st.session_state:
     st.session_state.questions_approved = False
+if 'extracted_questions' not in st.session_state:
+    st.session_state.extracted_questions = []
+if 'extracted_text' not in st.session_state:
+    st.session_state.extracted_text = ""
 
 def main():
     st.set_page_config(
@@ -96,9 +100,7 @@ def generate_answers_page():
         else:
             st.error("Please upload a question bank document first.")
     
-    # Display current processing status
-    if st.session_state.processing_stage:
-        display_processing_status()
+    # No longer need old processing status display
     
     # Display download button if answers are ready
     if st.session_state.current_answers:
@@ -114,71 +116,95 @@ def generate_answers(question_bank, college_notes, subject, mode, custom_prompt)
         pdf_compiler = PDFCompiler()
         
         # Stage 1: Extract questions from question bank
-        st.session_state.processing_stage = "extracting_questions"
-        st.rerun()
+        progress_container = st.container()
+        status_container = st.container()
         
-        with st.spinner("Extracting questions from document..."):
-            questions, extracted_text = pdf_processor.extract_questions(question_bank)
+        with progress_container:
+            progress_bar = st.progress(0, text="Starting question extraction...")
+        
+        with status_container:
+            status_text = st.empty()
+            
+        status_text.info("📄 Extracting text from document...")
+        progress_bar.progress(20, text="Extracting text from document...")
+        
+        questions, extracted_text = pdf_processor.extract_questions(question_bank)
+        
+        progress_bar.progress(60, text="Parsing questions...")
+        status_text.info("🔍 Parsing questions from extracted text...")
         
         if not questions:
-            st.error("No questions found in the uploaded document. Please check the format and try again.")
+            progress_bar.progress(100, text="Extraction completed")
+            status_text.error("❌ No questions found in the uploaded document.")
             
             # Show extracted text for debugging
             if extracted_text:
                 with st.expander("View Extracted Text (for debugging)", expanded=False):
                     st.text_area("Raw extracted text:", extracted_text[:2000] + "..." if len(extracted_text) > 2000 else extracted_text, height=200)
             
-            st.session_state.processing_stage = None
             return
         
-        st.success(f"Successfully extracted {len(questions)} questions!")
+        progress_bar.progress(100, text="Questions extracted successfully!")
+        status_text.success(f"✅ Successfully extracted {len(questions)} questions!")
+        
+        # Store questions in session state
+        st.session_state.extracted_questions = questions
+        st.session_state.extracted_text = extracted_text
         
         # Show extracted questions for verification
         with st.expander("📋 View Extracted Questions", expanded=True):
             st.write("**Extracted Questions:**")
-            for i, question in enumerate(questions[:5]):  # Show first 5 questions
+            for i, question in enumerate(questions[:10]):  # Show first 10 questions
                 st.write(f"**Q{i+1}:** {question}")
-            if len(questions) > 5:
-                st.write(f"... and {len(questions)-5} more questions")
+            if len(questions) > 10:
+                st.write(f"... and {len(questions)-10} more questions")
             
             # Allow user to continue or make changes
             col1, col2 = st.columns(2)
             with col1:
-                if st.button("✅ Questions look good, continue"):
+                if st.button("✅ Questions look good, continue", key="approve_questions"):
                     st.session_state.questions_approved = True
                     st.rerun()
             with col2:
-                if st.button("❌ Questions need adjustment"):
-                    st.info("Please check your document format or contact support for help.")
-                    st.session_state.processing_stage = None
+                if st.button("❌ Questions need adjustment", key="reject_questions"):
+                    st.info("Please check your document format or try a different file.")
                     return
         
         # Wait for user approval before continuing
         if not st.session_state.get('questions_approved', False):
             return
         
+        # Use stored questions for processing
+        questions = st.session_state.extracted_questions
+        
         # Stage 2: Process college notes if provided
         reference_content = ""
         if college_notes:
-            st.session_state.processing_stage = "processing_notes"
-            st.rerun()
+            progress_bar.progress(0, text="Processing college notes...")
+            status_text.info("📚 Processing college notes for reference...")
             
-            with st.spinner("Processing college notes for reference..."):
-                reference_content = pdf_processor.process_college_notes(college_notes)
+            reference_content = pdf_processor.process_college_notes(college_notes)
             
-            st.success(f"Processed {len(college_notes)} reference documents!")
+            progress_bar.progress(100, text="Notes processed successfully!")
+            status_text.success(f"✅ Processed {len(college_notes)} reference documents!")
+            time.sleep(1)  # Brief pause to show completion
         
         # Stage 3: Generate answers
-        st.session_state.processing_stage = "generating_answers"
-        st.rerun()
+        st.write("---")
+        st.subheader("🤖 Generating AI Answers")
         
         answers = []
-        progress_bar = st.progress(0)
-        status_text = st.empty()
+        main_progress = st.progress(0, text="Starting answer generation...")
+        current_status = st.empty()
+        answer_preview = st.empty()
         
         for i, question in enumerate(questions):
-            status_text.text(f"Generating answer for question {i+1} of {len(questions)}")
+            # Update progress
+            progress_percent = (i / len(questions))
+            main_progress.progress(progress_percent, text=f"Generating answer {i+1} of {len(questions)}")
+            current_status.info(f"🔄 Working on Question {i+1}: {question[:100]}...")
             
+            # Generate answer
             answer = ai_generator.generate_answer(
                 question=question,
                 subject=subject,
@@ -193,20 +219,38 @@ def generate_answers(question_bank, college_notes, subject, mode, custom_prompt)
                 "question_number": i + 1
             })
             
-            progress_bar.progress((i + 1) / len(questions))
-            time.sleep(0.1)  # Small delay to show progress
+            # Show preview of latest answer
+            with answer_preview.container():
+                st.write(f"✅ **Question {i+1} completed**")
+                if len(answer) > 200:
+                    st.write(f"Answer preview: {answer[:200]}...")
+                else:
+                    st.write(f"Answer: {answer}")
+            
+            time.sleep(0.5)  # Small delay for visual feedback
+        
+        main_progress.progress(1.0, text="All answers generated!")
+        current_status.success(f"🎉 Generated {len(answers)} comprehensive answers!")
         
         # Stage 4: Compile PDF
-        st.session_state.processing_stage = "compiling_pdf"
-        st.rerun()
+        st.write("---")
+        st.subheader("📄 Creating Professional PDF")
         
-        with st.spinner("Compiling professional PDF..."):
-            pdf_path = pdf_compiler.compile_answers_pdf(
-                answers=answers,
-                subject=subject,
-                mode=mode,
-                custom_prompt=custom_prompt
-            )
+        pdf_progress = st.progress(0, text="Compiling PDF document...")
+        pdf_status = st.empty()
+        
+        pdf_status.info("📋 Formatting answers and creating PDF...")
+        pdf_progress.progress(50, text="Formatting content...")
+        
+        pdf_path = pdf_compiler.compile_answers_pdf(
+            answers=answers,
+            subject=subject,
+            mode=mode,
+            custom_prompt=custom_prompt
+        )
+        
+        pdf_progress.progress(100, text="PDF created successfully!")
+        pdf_status.success("✅ Professional PDF document ready for download!")
         
         # Store results
         st.session_state.current_answers = {
@@ -222,31 +266,21 @@ def generate_answers(question_bank, college_notes, subject, mode, custom_prompt)
         
         # Reset approval state for next generation
         st.session_state.questions_approved = False
+        st.session_state.extracted_questions = []
         
-        st.session_state.processing_stage = "completed"
+        st.balloons()
         st.success("🎉 Answer generation completed successfully!")
-        st.rerun()
+        st.info("📥 Scroll down to download your PDF or check the History tab for all generated sets.")
         
     except Exception as e:
         st.error(f"An error occurred during processing: {str(e)}")
-        st.session_state.processing_stage = None
+        # Reset states on error
+        st.session_state.questions_approved = False
+        st.session_state.extracted_questions = []
 
 def display_processing_status():
-    """Display current processing status with progress indicators"""
-    
-    stage = st.session_state.processing_stage
-    
-    if stage == "extracting_questions":
-        st.info("📄 Extracting questions from PDF...")
-    elif stage == "processing_notes":
-        st.info("📚 Processing college notes...")
-    elif stage == "generating_answers":
-        st.info("🤖 Generating AI answers...")
-    elif stage == "compiling_pdf":
-        st.info("📋 Compiling professional PDF...")
-    elif stage == "completed":
-        st.success("✅ All stages completed!")
-        st.session_state.processing_stage = None
+    """Legacy function - no longer used"""
+    pass
 
 def display_download_section():
     """Display download section for generated answers"""

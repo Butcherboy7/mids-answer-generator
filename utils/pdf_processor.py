@@ -18,31 +18,60 @@ class PDFProcessor:
             r'^\(\d+\)\s+',  # (1) Question
         ]
     
-    def extract_questions(self, uploaded_file) -> Tuple[List[str], str]:
-        """Extract questions from uploaded question bank file (PDF or DOCX)"""
-        
+    def extract_text_from_pdf(self, uploaded_file) -> str:
+        """Extract text from uploaded PDF file with enhanced extraction"""
         try:
-            # Determine file type and extract text
-            if uploaded_file.name.lower().endswith('.pdf'):
-                full_text = self._extract_text_from_pdf(uploaded_file)
-            elif uploaded_file.name.lower().endswith(('.docx', '.doc')):
-                full_text = self._extract_text_from_docx(uploaded_file)
-            else:
-                st.error("Unsupported file format. Please upload a PDF or Word document.")
-                return [], ""
+            # Reset file pointer
+            uploaded_file.seek(0)
             
-            if not full_text.strip():
-                st.error("No text could be extracted from the file. Please ensure the file contains selectable text.")
-                return [], ""
+            # Save to temporary file
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp_file:
+                tmp_file.write(uploaded_file.read())
+                tmp_path = tmp_file.name
             
-            # Parse questions from the extracted text
-            questions = self._parse_questions(full_text)
-            
-            return questions, full_text
-            
+            try:
+                full_text = ""
+                with pdfplumber.open(tmp_path) as pdf:
+                    for page_num, page in enumerate(pdf.pages):
+                        # Try standard extraction first
+                        text = page.extract_text()
+                        
+                        # If no text, try with different settings
+                        if not text or len(text.strip()) < 10:
+                            text = page.extract_text(
+                                x_tolerance=2,
+                                y_tolerance=2,
+                                layout=True
+                            )
+                        
+                        # If still no text, try table extraction
+                        if not text or len(text.strip()) < 10:
+                            tables = page.extract_tables()
+                            if tables:
+                                for table in tables:
+                                    for row in table:
+                                        if row:
+                                            text += " ".join([cell for cell in row if cell]) + "\n"
+                        
+                        if text:
+                            full_text += f"--- Page {page_num + 1} ---\n{text}\n\n"
+                
+                return full_text
+            finally:
+                os.unlink(tmp_path)
+                
         except Exception as e:
-            st.error(f"Error extracting questions: {str(e)}")
-            return [], ""
+            raise Exception(f"Failed to extract text from PDF: {str(e)}")
+    
+    def extract_questions(self, text: str) -> List[str]:
+        """Extract questions from text using improved pattern matching"""
+        
+        if not text or not text.strip():
+            return []
+        
+        # Parse questions from the text
+        questions = self._parse_questions(text)
+        return questions
     
     def _extract_text_from_pdf(self, pdf_file) -> str:
         """Extract text from PDF file"""

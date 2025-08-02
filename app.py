@@ -21,6 +21,10 @@ if 'extracted_questions' not in st.session_state:
     st.session_state.extracted_questions = []
 if 'extracted_text' not in st.session_state:
     st.session_state.extracted_text = ""
+if 'editing_mode' not in st.session_state:
+    st.session_state.editing_mode = False
+if 'edited_questions' not in st.session_state:
+    st.session_state.edited_questions = []
 
 def main():
     st.set_page_config(
@@ -96,6 +100,8 @@ def generate_answers_page():
         if question_bank:
             # Reset approval state for new generation
             st.session_state.questions_approved = False
+            st.session_state.editing_mode = False
+            st.session_state.edited_questions = []
             generate_answers(question_bank, college_notes, subject, mode, custom_prompt)
         else:
             st.error("Please upload a question bank document first.")
@@ -151,24 +157,88 @@ def generate_answers(question_bank, college_notes, subject, mode, custom_prompt)
         st.session_state.extracted_questions = questions
         st.session_state.extracted_text = extracted_text
         
-        # Show extracted questions for verification
-        with st.expander("📋 View Extracted Questions", expanded=True):
+        # Show extracted questions for verification and editing
+        st.write("---")
+        st.subheader("📋 Review and Edit Questions")
+        
+        # Initialize editing mode if not set
+        if 'editing_mode' not in st.session_state:
+            st.session_state.editing_mode = False
+        
+        if not st.session_state.editing_mode:
+            # Display mode - show questions with options
             st.write("**Extracted Questions:**")
             for i, question in enumerate(questions[:10]):  # Show first 10 questions
                 st.write(f"**Q{i+1}:** {question}")
             if len(questions) > 10:
                 st.write(f"... and {len(questions)-10} more questions")
             
-            # Allow user to continue or make changes
             col1, col2 = st.columns(2)
             with col1:
                 if st.button("✅ Questions look good, continue", key="approve_questions"):
                     st.session_state.questions_approved = True
+                    st.session_state.editing_mode = False
                     st.rerun()
             with col2:
-                if st.button("❌ Questions need adjustment", key="reject_questions"):
-                    st.info("Please check your document format or try a different file.")
-                    return
+                if st.button("✏️ Edit Questions", key="edit_questions"):
+                    st.session_state.editing_mode = True
+                    st.session_state.edited_questions = questions.copy()
+                    st.rerun()
+        
+        else:
+            # Editing mode - allow question modification
+            st.write("**Edit Questions (one per line):**")
+            
+            # Initialize edited questions if not set
+            if 'edited_questions' not in st.session_state:
+                st.session_state.edited_questions = questions.copy()
+            
+            # Create text area with all questions
+            questions_text = "\n\n".join([f"Q{i+1}: {q}" for i, q in enumerate(st.session_state.edited_questions)])
+            
+            edited_text = st.text_area(
+                "Questions (you can edit, add, or remove questions):",
+                value=questions_text,
+                height=300,
+                key="questions_editor"
+            )
+            
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                if st.button("💾 Save Changes", key="save_questions"):
+                    # Parse edited questions
+                    lines = [line.strip() for line in edited_text.split('\n') if line.strip()]
+                    new_questions = []
+                    
+                    for line in lines:
+                        # Remove question numbering if present
+                        cleaned_line = re.sub(r'^Q?\d+[:\.\)]\s*', '', line).strip()
+                        if cleaned_line and len(cleaned_line.split()) > 3:
+                            new_questions.append(cleaned_line)
+                    
+                    if new_questions:
+                        st.session_state.edited_questions = new_questions
+                        st.session_state.extracted_questions = new_questions
+                        st.success(f"✅ Updated! Now have {len(new_questions)} questions.")
+                    else:
+                        st.error("No valid questions found. Please check your formatting.")
+            
+            with col2:
+                if st.button("✅ Use These Questions", key="confirm_edited"):
+                    if st.session_state.edited_questions:
+                        st.session_state.extracted_questions = st.session_state.edited_questions
+                        st.session_state.questions_approved = True
+                        st.session_state.editing_mode = False
+                        st.success("Questions confirmed! Proceeding with generation...")
+                        st.rerun()
+                    else:
+                        st.error("Please add at least one question.")
+            
+            with col3:
+                if st.button("❌ Cancel", key="cancel_edit"):
+                    st.session_state.editing_mode = False
+                    st.rerun()
         
         # Wait for user approval before continuing
         if not st.session_state.get('questions_approved', False):
@@ -267,6 +337,8 @@ def generate_answers(question_bank, college_notes, subject, mode, custom_prompt)
         # Reset approval state for next generation
         st.session_state.questions_approved = False
         st.session_state.extracted_questions = []
+        st.session_state.editing_mode = False
+        st.session_state.edited_questions = []
         
         st.balloons()
         st.success("🎉 Answer generation completed successfully!")
@@ -277,6 +349,8 @@ def generate_answers(question_bank, college_notes, subject, mode, custom_prompt)
         # Reset states on error
         st.session_state.questions_approved = False
         st.session_state.extracted_questions = []
+        st.session_state.editing_mode = False
+        st.session_state.edited_questions = []
 
 def display_processing_status():
     """Legacy function - no longer used"""

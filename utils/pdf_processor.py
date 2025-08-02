@@ -1,9 +1,10 @@
 import pdfplumber
 import re
 import streamlit as st
-from typing import List, Optional
+from typing import List, Optional, Tuple
 import tempfile
 import os
+from docx import Document
 
 class PDFProcessor:
     """Handles PDF text extraction and processing"""
@@ -17,58 +18,83 @@ class PDFProcessor:
             r'^\(\d+\)\s+',  # (1) Question
         ]
     
-    def extract_questions(self, pdf_file) -> List[str]:
-        """Extract questions from uploaded question bank PDF"""
+    def extract_questions(self, uploaded_file) -> Tuple[List[str], str]:
+        """Extract questions from uploaded question bank file (PDF or DOCX)"""
         
         try:
-            # Save uploaded file to temporary location
-            with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp_file:
-                tmp_file.write(pdf_file.getvalue())
-                tmp_path = tmp_file.name
+            # Determine file type and extract text
+            if uploaded_file.name.lower().endswith('.pdf'):
+                full_text = self._extract_text_from_pdf(uploaded_file)
+            elif uploaded_file.name.lower().endswith(('.docx', '.doc')):
+                full_text = self._extract_text_from_docx(uploaded_file)
+            else:
+                st.error("Unsupported file format. Please upload a PDF or Word document.")
+                return [], ""
             
-            questions = []
+            if not full_text.strip():
+                st.error("No text could be extracted from the file. Please ensure the file contains selectable text.")
+                return [], ""
             
+            # Parse questions from the extracted text
+            questions = self._parse_questions(full_text)
+            
+            return questions, full_text
+            
+        except Exception as e:
+            st.error(f"Error extracting questions: {str(e)}")
+            return [], ""
+    
+    def _extract_text_from_pdf(self, pdf_file) -> str:
+        """Extract text from PDF file"""
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp_file:
+            tmp_file.write(pdf_file.getvalue())
+            tmp_path = tmp_file.name
+        
+        try:
+            full_text = ""
             with pdfplumber.open(tmp_path) as pdf:
-                full_text = ""
-                
-                # Extract text from all pages
                 for page in pdf.pages:
                     page_text = page.extract_text()
                     if page_text:
                         full_text += page_text + "\n"
-                
-                # Clean and split text into potential questions
-                questions = self._parse_questions(full_text)
-            
-            # Clean up temporary file
+            return full_text
+        finally:
             os.unlink(tmp_path)
-            
-            return questions
-            
-        except Exception as e:
-            st.error(f"Error extracting questions: {str(e)}")
-            return []
+    
+    def _extract_text_from_docx(self, docx_file) -> str:
+        """Extract text from Word document"""
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.docx') as tmp_file:
+            tmp_file.write(docx_file.getvalue())
+            tmp_path = tmp_file.name
+        
+        try:
+            doc = Document(tmp_path)
+            full_text = ""
+            for paragraph in doc.paragraphs:
+                if paragraph.text.strip():
+                    full_text += paragraph.text + "\n"
+            return full_text
+        finally:
+            os.unlink(tmp_path)
     
     def process_college_notes(self, notes_files) -> str:
-        """Process multiple college notes PDFs and extract reference content"""
+        """Process multiple college notes files (PDF/Word) and extract reference content"""
         
         all_content = ""
         
         for notes_file in notes_files:
             try:
-                # Save uploaded file to temporary location
-                with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp_file:
-                    tmp_file.write(notes_file.getvalue())
-                    tmp_path = tmp_file.name
+                # Extract text based on file type
+                if notes_file.name.lower().endswith('.pdf'):
+                    file_content = self._extract_text_from_pdf(notes_file)
+                elif notes_file.name.lower().endswith(('.docx', '.doc')):
+                    file_content = self._extract_text_from_docx(notes_file)
+                else:
+                    st.warning(f"Unsupported file format for {notes_file.name}. Skipping.")
+                    continue
                 
-                with pdfplumber.open(tmp_path) as pdf:
-                    for page in pdf.pages:
-                        page_text = page.extract_text()
-                        if page_text:
-                            all_content += page_text + "\n\n"
-                
-                # Clean up temporary file
-                os.unlink(tmp_path)
+                if file_content.strip():
+                    all_content += file_content + "\n\n"
                 
             except Exception as e:
                 st.warning(f"Could not process notes file {notes_file.name}: {str(e)}")
@@ -80,37 +106,57 @@ class PDFProcessor:
         """Parse text to identify and extract individual questions"""
         
         questions = []
-        lines = text.split('\n')
-        current_question = ""
+        lines = [line.strip() for line in text.split('\n') if line.strip()]
         
-        for line in lines:
-            line = line.strip()
-            if not line:
-                continue
-            
+        if not lines:
+            return questions
+        
+        current_question = ""
+        question_started = False
+        
+        for i, line in enumerate(lines):
             # Check if line starts with a question pattern
             is_question_start = any(re.match(pattern, line) for pattern in self.question_patterns)
             
             if is_question_start:
                 # Save previous question if exists
-                if current_question.strip():
+                if current_question.strip() and question_started:
                     questions.append(current_question.strip())
                 
                 # Start new question
                 current_question = line
+                question_started = True
             else:
-                # Continue current question
-                if current_question:
-                    current_question += " " + line
+                # Continue current question if we've started one
+                if question_started:
+                    # Check if this might be start of next question (common patterns)
+                    next_line_is_question = (i + 1 < len(lines) and 
+                                           any(re.match(pattern, lines[i + 1]) for pattern in self.question_patterns))
+                    
+                    # If current line looks like an answer or next line is a question, stop here
+                    if (line.lower().startswith(('answer:', 'ans:', 'solution:', 'sol:')) or 
+                        next_line_is_question):
+                        if current_question.strip():
+                            questions.append(current_question.strip())
+                            current_question = ""
+                            question_started = False
+                    else:
+                        # Continue building the question
+                        current_question += " " + line
         
         # Add the last question
-        if current_question.strip():
+        if current_question.strip() and question_started:
             questions.append(current_question.strip())
         
-        # Filter out very short questions (likely not actual questions)
-        questions = [q for q in questions if len(q.split()) > 3]
+        # Filter out very short questions and clean them
+        filtered_questions = []
+        for q in questions:
+            # Remove common answer indicators from questions
+            cleaned_q = re.sub(r'\s*(answer|ans|solution|sol)\s*:.*$', '', q, flags=re.IGNORECASE).strip()
+            if len(cleaned_q.split()) > 3:
+                filtered_questions.append(cleaned_q)
         
-        return questions
+        return filtered_questions
     
     def _chunk_content(self, content: str, max_chunk_size: int = 2000) -> str:
         """Chunk large content for better processing"""

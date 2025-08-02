@@ -15,6 +15,8 @@ if 'current_answers' not in st.session_state:
     st.session_state.current_answers = None
 if 'history' not in st.session_state:
     st.session_state.history = HistoryManager()
+if 'questions_approved' not in st.session_state:
+    st.session_state.questions_approved = False
 
 def main():
     st.set_page_config(
@@ -44,18 +46,18 @@ def generate_answers_page():
     col1, col2 = st.columns(2)
     
     with col1:
-        st.subheader("📄 Question Bank PDF")
+        st.subheader("📄 Question Bank Document")
         question_bank = st.file_uploader(
-            "Upload your question bank PDF (computer-typed, selectable text)",
-            type=['pdf'],
+            "Upload your question bank (PDF or Word document)",
+            type=['pdf', 'docx', 'doc'],
             key="question_bank"
         )
     
     with col2:
-        st.subheader("📚 College Notes PDFs (Optional)")
+        st.subheader("📚 College Notes (Optional)")
         college_notes = st.file_uploader(
-            "Upload college notes for reference",
-            type=['pdf'],
+            "Upload college notes for reference (PDF or Word)",
+            type=['pdf', 'docx', 'doc'],
             accept_multiple_files=True,
             key="college_notes"
         )
@@ -88,9 +90,11 @@ def generate_answers_page():
     # Generate button
     if st.button("Generate Answers", type="primary", disabled=not question_bank):
         if question_bank:
+            # Reset approval state for new generation
+            st.session_state.questions_approved = False
             generate_answers(question_bank, college_notes, subject, mode, custom_prompt)
         else:
-            st.error("Please upload a question bank PDF first.")
+            st.error("Please upload a question bank document first.")
     
     # Display current processing status
     if st.session_state.processing_stage:
@@ -113,15 +117,45 @@ def generate_answers(question_bank, college_notes, subject, mode, custom_prompt)
         st.session_state.processing_stage = "extracting_questions"
         st.rerun()
         
-        with st.spinner("Extracting questions from question bank..."):
-            questions = pdf_processor.extract_questions(question_bank)
+        with st.spinner("Extracting questions from document..."):
+            questions, extracted_text = pdf_processor.extract_questions(question_bank)
         
         if not questions:
-            st.error("No questions found in the uploaded PDF. Please ensure the PDF contains selectable text.")
+            st.error("No questions found in the uploaded document. Please check the format and try again.")
+            
+            # Show extracted text for debugging
+            if extracted_text:
+                with st.expander("View Extracted Text (for debugging)", expanded=False):
+                    st.text_area("Raw extracted text:", extracted_text[:2000] + "..." if len(extracted_text) > 2000 else extracted_text, height=200)
+            
             st.session_state.processing_stage = None
             return
         
         st.success(f"Successfully extracted {len(questions)} questions!")
+        
+        # Show extracted questions for verification
+        with st.expander("📋 View Extracted Questions", expanded=True):
+            st.write("**Extracted Questions:**")
+            for i, question in enumerate(questions[:5]):  # Show first 5 questions
+                st.write(f"**Q{i+1}:** {question}")
+            if len(questions) > 5:
+                st.write(f"... and {len(questions)-5} more questions")
+            
+            # Allow user to continue or make changes
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("✅ Questions look good, continue"):
+                    st.session_state.questions_approved = True
+                    st.rerun()
+            with col2:
+                if st.button("❌ Questions need adjustment"):
+                    st.info("Please check your document format or contact support for help.")
+                    st.session_state.processing_stage = None
+                    return
+        
+        # Wait for user approval before continuing
+        if not st.session_state.get('questions_approved', False):
+            return
         
         # Stage 2: Process college notes if provided
         reference_content = ""
@@ -185,6 +219,9 @@ def generate_answers(question_bank, college_notes, subject, mode, custom_prompt)
         
         # Save to history
         st.session_state.history.add_entry(st.session_state.current_answers)
+        
+        # Reset approval state for next generation
+        st.session_state.questions_approved = False
         
         st.session_state.processing_stage = "completed"
         st.success("🎉 Answer generation completed successfully!")

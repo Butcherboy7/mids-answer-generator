@@ -1,4 +1,7 @@
 import os
+import time
+import asyncio
+from typing import List, Dict
 from google import genai
 from google.genai import types
 import streamlit as st
@@ -14,20 +17,34 @@ class AIGenerator:
         
         self.client = genai.Client(api_key=api_key)
         self.model = "gemini-2.5-flash"
+        self.rate_limit_delay = 1.0  # Delay between requests (seconds)
+        self.batch_size = 5  # Process questions in batches
+        self.request_count = 0  # Track API requests
+        self.max_requests_per_session = 60  # Conservative limit per session
     
     def generate_answer(self, question: str, subject: str, mode: str, 
                        custom_prompt: str = "", reference_content: str = "") -> str:
-        """Generate an answer for a given question using AI"""
+        """Generate an answer for a given question using AI with rate limiting"""
+        
+        # Construct the prompt based on mode and subject
+        prompt = self._construct_prompt(
+            question=question,
+            subject=subject,
+            mode=mode,
+            custom_prompt=custom_prompt,
+            reference_content=reference_content
+        )
         
         try:
-            # Construct the prompt based on mode and subject
-            prompt = self._construct_prompt(
-                question=question,
-                subject=subject,
-                mode=mode,
-                custom_prompt=custom_prompt,
-                reference_content=reference_content
-            )
+            # Check if we're approaching request limits
+            if self.request_count >= self.max_requests_per_session:
+                return f"Session request limit reached ({self.max_requests_per_session}). Please restart the app to continue."
+            
+            # Add rate limiting delay
+            time.sleep(self.rate_limit_delay)
+            
+            # Track request
+            self.request_count += 1
             
             response = self.client.models.generate_content(
                 model=self.model,
@@ -37,8 +54,63 @@ class AIGenerator:
             return response.text or "Unable to generate answer for this question."
             
         except Exception as e:
-            st.error(f"Error generating answer: {str(e)}")
-            return f"Error generating answer: {str(e)}"
+            # Handle rate limiting and other API errors
+            if "rate limit" in str(e).lower() or "quota" in str(e).lower():
+                st.warning(f"API rate limit reached. Waiting 5 seconds before retry...")
+                time.sleep(5)
+                # Retry once
+                try:
+                    response = self.client.models.generate_content(
+                        model=self.model,
+                        contents=prompt
+                    )
+                    return response.text or "Unable to generate answer for this question."
+                except Exception as retry_e:
+                    return f"API limit exceeded. Please try again later. Error: {str(retry_e)}"
+            else:
+                st.error(f"Error generating answer: {str(e)}")
+                return f"Error generating answer: {str(e)}"
+    
+    def generate_answers_batch(self, questions_data: List[Dict], subject: str, mode: str,
+                              custom_prompt: str = "", reference_content: str = "") -> List[Dict]:
+        """Generate answers for multiple questions with batch processing and rate limiting"""
+        
+        answers = []
+        total_questions = len(questions_data)
+        
+        st.info(f"Processing {total_questions} questions in batches of {self.batch_size}")
+        
+        # Process in batches
+        for batch_start in range(0, total_questions, self.batch_size):
+            batch_end = min(batch_start + self.batch_size, total_questions)
+            batch = questions_data[batch_start:batch_end]
+            
+            st.info(f"Processing batch {batch_start//self.batch_size + 1} (Questions {batch_start+1}-{batch_end})")
+            
+            batch_answers = []
+            for item in batch:
+                answer = self.generate_answer(
+                    question=item['question'],
+                    subject=subject,
+                    mode=mode,
+                    custom_prompt=custom_prompt,
+                    reference_content=reference_content
+                )
+                
+                batch_answers.append({
+                    "question": item['question'],
+                    "answer": answer,
+                    "question_number": item['question_number']
+                })
+            
+            answers.extend(batch_answers)
+            
+            # Longer delay between batches to avoid rate limits
+            if batch_end < total_questions:
+                st.info(f"Batch completed. Waiting 3 seconds before next batch...")
+                time.sleep(3)
+        
+        return answers
     
     def _construct_prompt(self, question: str, subject: str, mode: str, 
                          custom_prompt: str = "", reference_content: str = "") -> str:

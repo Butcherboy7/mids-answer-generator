@@ -2,6 +2,7 @@ import streamlit as st
 import os
 import json
 import time
+import re
 from datetime import datetime
 from utils.pdf_processor import PDFProcessor
 from utils.ai_generator import AIGenerator
@@ -259,48 +260,99 @@ def generate_answers(question_bank, college_notes, subject, mode, custom_prompt)
             status_text.success(f"✅ Processed {len(college_notes)} reference documents!")
             time.sleep(1)  # Brief pause to show completion
         
-        # Stage 3: Generate answers
+        # Stage 3: Generate answers with batch processing
         st.write("---")
         st.subheader("🤖 Generating AI Answers")
         
-        answers = []
-        main_progress = st.progress(0, text="Starting answer generation...")
+        # Configure batch settings and show API usage
+        col1, col2 = st.columns([2, 1])
+        
+        with col1:
+            batch_settings_expander = st.expander("⚙️ Batch Settings (Optional)", expanded=False)
+            with batch_settings_expander:
+                col_a, col_b = st.columns(2)
+                with col_a:
+                    batch_size = st.slider("Questions per batch", 1, 10, ai_generator.batch_size, 
+                                         help="Smaller batches = slower but less likely to hit rate limits")
+                with col_b:
+                    rate_delay = st.slider("Delay between requests (seconds)", 0.5, 3.0, ai_generator.rate_limit_delay,
+                                         help="Longer delays reduce chance of rate limiting")
+                
+                ai_generator.batch_size = batch_size
+                ai_generator.rate_limit_delay = rate_delay
+        
+        with col2:
+            # API usage tracker
+            st.info(f"📊 **API Usage**")
+            st.write(f"Requests this session: {ai_generator.request_count}")
+            st.write(f"Session limit: {ai_generator.max_requests_per_session}")
+            remaining = ai_generator.max_requests_per_session - ai_generator.request_count
+            if remaining < 10:
+                st.warning(f"⚠️ Only {remaining} requests remaining")
+            
+            estimated_requests = len(questions)
+            if estimated_requests > remaining:
+                st.error(f"❌ Not enough requests remaining for {estimated_requests} questions")
+                st.info("💡 Tip: Restart the app to reset the session limit")
+                return
+        
+        # Prepare questions for batch processing
+        questions_data = [{"question": q, "question_number": i+1} for i, q in enumerate(questions)]
+        
+        main_progress = st.progress(0, text="Starting batch answer generation...")
         current_status = st.empty()
+        batch_info = st.empty()
         answer_preview = st.empty()
         
-        for i, question in enumerate(questions):
+        # Use batch processing
+        answers = []
+        total_batches = (len(questions) + ai_generator.batch_size - 1) // ai_generator.batch_size
+        
+        for batch_num in range(total_batches):
+            batch_start = batch_num * ai_generator.batch_size
+            batch_end = min(batch_start + ai_generator.batch_size, len(questions))
+            batch_data = questions_data[batch_start:batch_end]
+            
             # Update progress
-            progress_percent = (i / len(questions))
-            main_progress.progress(progress_percent, text=f"Generating answer {i+1} of {len(questions)}")
-            current_status.info(f"🔄 Working on Question {i+1}: {question[:100]}...")
+            progress_percent = batch_num / total_batches
+            main_progress.progress(progress_percent, text=f"Processing batch {batch_num+1} of {total_batches}")
+            batch_info.info(f"📦 Batch {batch_num+1}: Processing questions {batch_start+1}-{batch_end}")
             
-            # Generate answer
-            answer = ai_generator.generate_answer(
-                question=question,
-                subject=subject,
-                mode=mode,
-                custom_prompt=custom_prompt,
-                reference_content=reference_content
-            )
+            # Process batch
+            for i, item in enumerate(batch_data):
+                current_question_num = batch_start + i + 1
+                current_status.info(f"🔄 Question {current_question_num}: {item['question'][:100]}...")
+                
+                answer = ai_generator.generate_answer(
+                    question=item['question'],
+                    subject=subject,
+                    mode=mode,
+                    custom_prompt=custom_prompt,
+                    reference_content=reference_content
+                )
+                
+                answers.append({
+                    "question": item['question'],
+                    "answer": answer,
+                    "question_number": item['question_number']
+                })
+                
+                # Show preview of latest answer
+                with answer_preview.container():
+                    st.write(f"✅ **Question {current_question_num} completed**")
+                    if len(answer) > 200:
+                        st.write(f"Preview: {answer[:200]}...")
+                    else:
+                        st.write(f"Answer: {answer}")
             
-            answers.append({
-                "question": question,
-                "answer": answer,
-                "question_number": i + 1
-            })
-            
-            # Show preview of latest answer
-            with answer_preview.container():
-                st.write(f"✅ **Question {i+1} completed**")
-                if len(answer) > 200:
-                    st.write(f"Answer preview: {answer[:200]}...")
-                else:
-                    st.write(f"Answer: {answer}")
-            
-            time.sleep(0.5)  # Small delay for visual feedback
+            # Batch completion
+            if batch_end < len(questions):
+                batch_info.success(f"✅ Batch {batch_num+1} completed. Waiting before next batch...")
+                time.sleep(2)  # Brief pause between batches
         
         main_progress.progress(1.0, text="All answers generated!")
         current_status.success(f"🎉 Generated {len(answers)} comprehensive answers!")
+        batch_info.success(f"✅ Completed {total_batches} batches successfully!")
         
         # Stage 4: Compile PDF
         st.write("---")

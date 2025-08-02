@@ -75,6 +75,8 @@ class AIGenerator:
                                       custom_prompt: str = "", reference_content: str = "") -> List[Dict]:
         """Generate answers for multiple questions in a single API call"""
         
+        st.write(f"🔍 DEBUG: Processing {len(questions_batch)} questions with multi-question API call")
+        
         # Check if we're approaching request limits
         if self.request_count >= self.max_requests_per_session:
             return [{"question": q["question"], "answer": f"Session request limit reached ({self.max_requests_per_session}). Please restart the app to continue.", "question_number": q["question_number"]} for q in questions_batch]
@@ -90,10 +92,12 @@ class AIGenerator:
         
         try:
             # Add rate limiting delay
+            st.write(f"⏳ Waiting {self.rate_limit_delay} seconds before API call...")
             time.sleep(self.rate_limit_delay)
             
             # Track request
             self.request_count += 1
+            st.write(f"📡 Making API call #{self.request_count} to Gemini...")
             
             response = self.client.models.generate_content(
                 model=self.model,
@@ -101,9 +105,11 @@ class AIGenerator:
             )
             
             response_text = response.text or "Unable to generate answers for these questions."
+            st.write(f"✅ Received response ({len(response_text)} characters)")
             
             # Parse the response to extract individual answers
             parsed_answers = self._parse_multi_question_response(response_text, questions_batch)
+            st.write(f"🔧 Parsed {len(parsed_answers)} answers from response")
             
             return parsed_answers
             

@@ -326,14 +326,23 @@ def generate_answers(question_bank, college_notes, subject, mode, custom_prompt)
             # Process batch with multi-question API call
             current_status.info(f"🔄 Processing {len(batch_data)} questions in single API call...")
             
-            # Generate answers for entire batch in one call
-            batch_answers = ai_generator.generate_multi_question_answer(
-                questions_batch=batch_data,
-                subject=subject,
-                mode=mode,
-                custom_prompt=custom_prompt,
-                reference_content=reference_content
-            )
+            try:
+                # Generate answers for entire batch in one call
+                batch_answers = ai_generator.generate_multi_question_answer(
+                    questions_batch=batch_data,
+                    subject=subject,
+                    mode=mode,
+                    custom_prompt=custom_prompt,
+                    reference_content=reference_content
+                )
+                
+                if not batch_answers:
+                    st.error("No answers generated for this batch!")
+                    batch_answers = [{"question": q["question"], "answer": "Failed to generate answer", "question_number": q["question_number"]} for q in batch_data]
+                    
+            except Exception as e:
+                st.error(f"Error in batch processing: {str(e)}")
+                batch_answers = [{"question": q["question"], "answer": f"Error: {str(e)}", "question_number": q["question_number"]} for q in batch_data]
             
             answers.extend(batch_answers)
             

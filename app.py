@@ -268,18 +268,21 @@ def generate_answers(question_bank, college_notes, subject, mode, custom_prompt)
         col1, col2 = st.columns([2, 1])
         
         with col1:
-            batch_settings_expander = st.expander("⚙️ Batch Settings (Optional)", expanded=False)
+            batch_settings_expander = st.expander("⚙️ Multi-Question Batch Settings", expanded=False)
             with batch_settings_expander:
                 col_a, col_b = st.columns(2)
                 with col_a:
-                    batch_size = st.slider("Questions per batch", 1, 10, ai_generator.batch_size, 
-                                         help="Smaller batches = slower but less likely to hit rate limits")
+                    batch_size = st.slider("Questions per API call", 1, 5, min(3, ai_generator.batch_size), 
+                                         help="More questions per call = fewer API requests but longer responses")
                 with col_b:
-                    rate_delay = st.slider("Delay between requests (seconds)", 0.5, 3.0, ai_generator.rate_limit_delay,
+                    rate_delay = st.slider("Delay between calls (seconds)", 1.0, 5.0, max(2.0, ai_generator.rate_limit_delay),
                                          help="Longer delays reduce chance of rate limiting")
                 
                 ai_generator.batch_size = batch_size
                 ai_generator.rate_limit_delay = rate_delay
+                
+                st.info(f"💡 **Optimization**: {len(questions)} questions will use ~{(len(questions) + batch_size - 1) // batch_size} API calls instead of {len(questions)}")
+                st.write(f"**Benefits**: Fewer API calls, more detailed answers, lower cost")
         
         with col2:
             # API usage tracker
@@ -318,37 +321,33 @@ def generate_answers(question_bank, college_notes, subject, mode, custom_prompt)
             main_progress.progress(progress_percent, text=f"Processing batch {batch_num+1} of {total_batches}")
             batch_info.info(f"📦 Batch {batch_num+1}: Processing questions {batch_start+1}-{batch_end}")
             
-            # Process batch
-            for i, item in enumerate(batch_data):
-                current_question_num = batch_start + i + 1
-                current_status.info(f"🔄 Question {current_question_num}: {item['question'][:100]}...")
-                
-                answer = ai_generator.generate_answer(
-                    question=item['question'],
-                    subject=subject,
-                    mode=mode,
-                    custom_prompt=custom_prompt,
-                    reference_content=reference_content
-                )
-                
-                answers.append({
-                    "question": item['question'],
-                    "answer": answer,
-                    "question_number": item['question_number']
-                })
-                
-                # Show preview of latest answer
-                with answer_preview.container():
-                    st.write(f"✅ **Question {current_question_num} completed**")
-                    if len(answer) > 200:
-                        st.write(f"Preview: {answer[:200]}...")
+            # Process batch with multi-question API call
+            current_status.info(f"🔄 Processing {len(batch_data)} questions in single API call...")
+            
+            # Generate answers for entire batch in one call
+            batch_answers = ai_generator.generate_multi_question_answer(
+                questions_batch=batch_data,
+                subject=subject,
+                mode=mode,
+                custom_prompt=custom_prompt,
+                reference_content=reference_content
+            )
+            
+            answers.extend(batch_answers)
+            
+            # Show preview of batch results
+            with answer_preview.container():
+                st.write(f"✅ **Batch {batch_num+1} completed** - {len(batch_answers)} answers generated")
+                for ans in batch_answers:
+                    if len(ans['answer']) > 150:
+                        st.write(f"**Q{ans['question_number']}**: {ans['answer'][:150]}...")
                     else:
-                        st.write(f"Answer: {answer}")
+                        st.write(f"**Q{ans['question_number']}**: {ans['answer']}")
             
             # Batch completion
             if batch_end < len(questions):
                 batch_info.success(f"✅ Batch {batch_num+1} completed. Waiting before next batch...")
-                time.sleep(2)  # Brief pause between batches
+                time.sleep(1)  # Brief pause between batches
         
         main_progress.progress(1.0, text="All answers generated!")
         current_status.success(f"🎉 Generated {len(answers)} comprehensive answers!")

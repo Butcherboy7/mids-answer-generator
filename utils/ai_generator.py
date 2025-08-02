@@ -71,46 +71,63 @@ class AIGenerator:
                 st.error(f"Error generating answer: {str(e)}")
                 return f"Error generating answer: {str(e)}"
     
-    def generate_answers_batch(self, questions_data: List[Dict], subject: str, mode: str,
-                              custom_prompt: str = "", reference_content: str = "") -> List[Dict]:
-        """Generate answers for multiple questions with batch processing and rate limiting"""
+    def generate_multi_question_answer(self, questions_batch: List[Dict], subject: str, mode: str,
+                                      custom_prompt: str = "", reference_content: str = "") -> List[Dict]:
+        """Generate answers for multiple questions in a single API call"""
         
-        answers = []
-        total_questions = len(questions_data)
+        # Check if we're approaching request limits
+        if self.request_count >= self.max_requests_per_session:
+            return [{"question": q["question"], "answer": f"Session request limit reached ({self.max_requests_per_session}). Please restart the app to continue.", "question_number": q["question_number"]} for q in questions_batch]
         
-        st.info(f"Processing {total_questions} questions in batches of {self.batch_size}")
+        # Construct multi-question prompt
+        multi_prompt = self._construct_multi_question_prompt(
+            questions_batch=questions_batch,
+            subject=subject,
+            mode=mode,
+            custom_prompt=custom_prompt,
+            reference_content=reference_content
+        )
         
-        # Process in batches
-        for batch_start in range(0, total_questions, self.batch_size):
-            batch_end = min(batch_start + self.batch_size, total_questions)
-            batch = questions_data[batch_start:batch_end]
+        try:
+            # Add rate limiting delay
+            time.sleep(self.rate_limit_delay)
             
-            st.info(f"Processing batch {batch_start//self.batch_size + 1} (Questions {batch_start+1}-{batch_end})")
+            # Track request
+            self.request_count += 1
             
-            batch_answers = []
-            for item in batch:
-                answer = self.generate_answer(
-                    question=item['question'],
-                    subject=subject,
-                    mode=mode,
-                    custom_prompt=custom_prompt,
-                    reference_content=reference_content
-                )
-                
-                batch_answers.append({
-                    "question": item['question'],
-                    "answer": answer,
-                    "question_number": item['question_number']
-                })
+            response = self.client.models.generate_content(
+                model=self.model,
+                contents=multi_prompt
+            )
             
-            answers.extend(batch_answers)
+            response_text = response.text or "Unable to generate answers for these questions."
             
-            # Longer delay between batches to avoid rate limits
-            if batch_end < total_questions:
-                st.info(f"Batch completed. Waiting 3 seconds before next batch...")
-                time.sleep(3)
-        
-        return answers
+            # Parse the response to extract individual answers
+            parsed_answers = self._parse_multi_question_response(response_text, questions_batch)
+            
+            return parsed_answers
+            
+        except Exception as e:
+            # Handle rate limiting and other API errors
+            if "rate limit" in str(e).lower() or "quota" in str(e).lower():
+                st.warning(f"API rate limit reached. Waiting 5 seconds before retry...")
+                time.sleep(5)
+                # Retry once
+                try:
+                    response = self.client.models.generate_content(
+                        model=self.model,
+                        contents=multi_prompt
+                    )
+                    response_text = response.text or "Unable to generate answers for these questions."
+                    parsed_answers = self._parse_multi_question_response(response_text, questions_batch)
+                    return parsed_answers
+                except Exception as retry_e:
+                    error_msg = f"API limit exceeded. Please try again later. Error: {str(retry_e)}"
+                    return [{"question": q["question"], "answer": error_msg, "question_number": q["question_number"]} for q in questions_batch]
+            else:
+                st.error(f"Error generating answers: {str(e)}")
+                error_msg = f"Error generating answer: {str(e)}"
+                return [{"question": q["question"], "answer": error_msg, "question_number": q["question_number"]} for q in questions_batch]
     
     def _construct_prompt(self, question: str, subject: str, mode: str, 
                          custom_prompt: str = "", reference_content: str = "") -> str:
@@ -297,3 +314,140 @@ GENERAL ACADEMIC GUIDELINES:
 - Consider practical applications
 - Use appropriate academic terminology
 """)
+    
+    def _construct_multi_question_prompt(self, questions_batch: List[Dict], subject: str, mode: str,
+                                        custom_prompt: str = "", reference_content: str = "") -> str:
+        """Construct a prompt for multiple questions in one API call"""
+        
+        # Base instruction for multiple questions
+        base_instruction = f"""
+You are an expert academic assistant specializing in {subject}. 
+Generate comprehensive answers for the following {len(questions_batch)} college-level questions, each worth 8 marks.
+
+IMPORTANT FORMATTING INSTRUCTIONS:
+- Start each answer with "ANSWER [question_number]:" 
+- Each answer should be 400-600 words for an 8-mark question
+- Use **bold** for key terms and *italics* for important concepts
+- Include bullet points and numbered lists where appropriate
+- Maintain academic rigor and accuracy
+- Separate each answer clearly with a line break
+
+"""
+        
+        # Mode-specific instructions
+        if mode == "Understand Mode":
+            mode_instruction = """
+ANSWER GENERATION MODE: UNDERSTAND MODE
+- Provide detailed explanations with analogies and real-world examples
+- Use simpler language where appropriate for foundational understanding
+- Include step-by-step breakdowns of complex concepts
+- Add background context and theoretical foundations
+- Use illustrative examples to clarify difficult points
+- Focus on building comprehensive understanding
+"""
+        else:  # Exam Mode
+            mode_instruction = """
+ANSWER GENERATION MODE: EXAM MODE
+- Provide concise, highly focused answers with direct key points
+- Use formal academic language appropriate for examinations
+- Minimize verbose examples or extensive background explanations
+- Structure answers for maximum marks in minimum words
+- Include only the most relevant information for exam success
+- Format for quick review and memorization
+"""
+        
+        # Subject-specific guidelines
+        subject_guidelines = self._get_subject_guidelines(subject)
+        
+        # Reference content section
+        reference_section = ""
+        if reference_content.strip():
+            reference_section = f"""
+REFERENCE MATERIAL:
+Use the following college notes as additional context when relevant:
+{reference_content[:1500]}...
+
+"""
+        
+        # Custom prompt section
+        custom_section = ""
+        if custom_prompt.strip():
+            custom_section = f"""
+ADDITIONAL INSTRUCTIONS:
+{custom_prompt}
+
+"""
+        
+        # Questions section
+        questions_section = "QUESTIONS TO ANSWER:\n\n"
+        for i, q_data in enumerate(questions_batch, 1):
+            questions_section += f"QUESTION {q_data['question_number']}: {q_data['question']}\n\n"
+        
+        # Construct final prompt
+        final_prompt = f"""
+{base_instruction}
+
+{mode_instruction}
+
+{subject_guidelines}
+
+{reference_section}
+
+{custom_section}
+
+{questions_section}
+
+Please provide comprehensive, well-formatted answers for all questions following the above guidelines.
+Remember to start each answer with "ANSWER [question_number]:" and maintain consistent formatting.
+"""
+        
+        return final_prompt
+    
+    def _parse_multi_question_response(self, response_text: str, questions_batch: List[Dict]) -> List[Dict]:
+        """Parse the multi-question response to extract individual answers"""
+        
+        answers = []
+        
+        # Split response by answer markers
+        import re
+        answer_sections = re.split(r'ANSWER\s+(\d+):', response_text, flags=re.IGNORECASE)
+        
+        # First element is usually empty or contains preamble
+        if len(answer_sections) > 1:
+            # Process pairs of (question_number, answer_text)
+            for i in range(1, len(answer_sections), 2):
+                if i + 1 < len(answer_sections):
+                    question_num = int(answer_sections[i].strip())
+                    answer_text = answer_sections[i + 1].strip()
+                    
+                    # Find the corresponding question
+                    for q_data in questions_batch:
+                        if q_data['question_number'] == question_num:
+                            answers.append({
+                                "question": q_data['question'],
+                                "answer": answer_text,
+                                "question_number": question_num
+                            })
+                            break
+        
+        # If parsing failed, create fallback answers
+        if len(answers) != len(questions_batch):
+            st.warning("Response parsing incomplete. Using fallback method.")
+            # Split by approximate sections
+            sections = response_text.split('\n\n')
+            for i, q_data in enumerate(questions_batch):
+                if i < len(sections):
+                    answer_text = sections[i].strip()
+                else:
+                    answer_text = "Answer extraction failed. Please try regenerating."
+                
+                # Check if we already have this answer
+                existing = [a for a in answers if a['question_number'] == q_data['question_number']]
+                if not existing:
+                    answers.append({
+                        "question": q_data['question'],
+                        "answer": answer_text,
+                        "question_number": q_data['question_number']
+                    })
+        
+        return answers

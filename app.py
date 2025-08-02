@@ -177,9 +177,12 @@ def generate_answers(question_bank, college_notes, subject, mode, custom_prompt)
             col1, col2 = st.columns(2)
             with col1:
                 if st.button("✅ Questions look good, continue", key="approve_questions"):
+                    # Set approval and continue with processing immediately
                     st.session_state.questions_approved = True
                     st.session_state.editing_mode = False
-                    st.rerun()
+                    st.success("✅ Questions approved! Starting AI generation...")
+                    # Force immediate processing by setting a trigger
+                    st.session_state.start_processing = True
             with col2:
                 if st.button("✏️ Edit Questions", key="edit_questions"):
                     st.session_state.editing_mode = True
@@ -232,7 +235,7 @@ def generate_answers(question_bank, college_notes, subject, mode, custom_prompt)
                         st.session_state.questions_approved = True
                         st.session_state.editing_mode = False
                         st.success("Questions confirmed! Proceeding with generation...")
-                        st.rerun()
+                        # Don't rerun - let processing continue
                     else:
                         st.error("Please add at least one question.")
             
@@ -241,11 +244,16 @@ def generate_answers(question_bank, college_notes, subject, mode, custom_prompt)
                     st.session_state.editing_mode = False
                     st.rerun()
         
-        # Auto-approve questions for immediate processing (users can edit if needed)
-        if not st.session_state.get('questions_approved', False):
-            # Auto-approve if user hasn't explicitly requested editing
-            if not st.session_state.get('editing_mode', False):
-                st.session_state.questions_approved = True
+        # Check if questions are approved for processing
+        if not st.session_state.get('questions_approved', False) and not st.session_state.get('start_processing', False):
+            # Stop here and wait for user approval
+            st.info("👆 Please review the questions above and click 'Questions look good, continue' to proceed with AI answer generation.")
+            return
+        
+        # If we reach here, we're ready to process
+        if st.session_state.get('start_processing', False):
+            st.session_state.start_processing = False  # Reset the trigger
+            st.session_state.questions_approved = True  # Ensure approval is set
         
         # Use stored questions for processing
         questions = st.session_state.extracted_questions

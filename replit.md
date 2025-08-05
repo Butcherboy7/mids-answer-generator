@@ -3,13 +3,17 @@
 The College Answer Generator is a comprehensive, GitHub-ready Streamlit-based web application that automates the creation of professional academic answers from question bank documents. The system uses AI (Google Gemini) to generate contextually appropriate answers with advanced formatting for all academic subjects. Now fully configured for easy deployment across multiple platforms with professional documentation, Docker support, and comprehensive setup instructions.
 
 ## Recent Changes (August 2025)
+- ✅ **PDF Formatting Overhaul**: Completely eliminated HTML tag parsing issues with ultra-safe text processing
+- ✅ **Smart Content Detection**: Added intelligent formatting for headings, lists, and code blocks
+- ✅ **Markdown Cleanup**: Fixed hashtag rendering issues by properly removing markdown symbols
+- ✅ **Subject-Aware Formatting**: Code blocks with colored backgrounds for programming subjects only
+- ✅ **Enhanced API Reliability**: Improved retry mechanism with progressive delays for better error handling
+- ✅ **Clean Text Processing**: Removed all problematic HTML/markdown that caused parser conflicts
 - ✅ **GitHub-Ready Package**: Complete with README, CONTRIBUTING guidelines, and deployment docs
 - ✅ **Docker Support**: Full containerization with docker-compose configuration
-- ✅ **Enhanced Formatting**: Advanced PDF generation with LaTeX math, code highlighting, special characters
 - ✅ **Multi-Platform Deployment**: Support for local, Docker, Replit, and Streamlit Cloud
 - ✅ **Professional Documentation**: Comprehensive setup guides and contribution workflows
 - ✅ **Robust Error Handling**: Fixed PDF parsing issues and improved stability
-- ✅ **Replit Migration**: Successfully migrated from Replit Agent to standard Replit environment with proper Streamlit configuration
 - ✅ **Replit Migration**: Successfully migrated from Replit Agent to standard Replit environment with proper Streamlit configuration
 
 # User Preferences

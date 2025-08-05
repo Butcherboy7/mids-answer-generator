@@ -618,6 +618,7 @@ class PDFCompiler:
         text = text.replace('&quot;', '"').replace('&nbsp;', ' ')
         
         # Remove markdown formatting entirely for safety
+        text = re.sub(r'^#+\s*', '', text)             # Remove heading hashtags
         text = re.sub(r'\*\*([^*]+)\*\*', r'\1', text)  # Remove bold markup
         text = re.sub(r'__([^_]+)__', r'\1', text)      # Remove bold markup  
         text = re.sub(r'\*([^*]+)\*', r'\1', text)      # Remove italic markup
@@ -697,6 +698,10 @@ class PDFCompiler:
         """Detect headings and important section titles"""
         return (text.endswith(':') and len(text) < 100 and '\n' not in text) or \
                text.isupper() or \
+               text.startswith('####') or \
+               text.startswith('###') or \
+               text.startswith('##') or \
+               text.startswith('#') or \
                (text.startswith(('DEFINITION', 'EXPLANATION', 'EXAMPLE', 'ANSWER', 'SOLUTION')))
     
     def _is_list_section(self, text: str) -> bool:
@@ -759,7 +764,9 @@ class PDFCompiler:
     
     def _format_heading(self, text: str) -> Paragraph:
         """Format headings with safe styling"""
-        clean_text = text.replace(':', '').strip()
+        # Remove markdown heading symbols and clean up
+        clean_text = re.sub(r'^#+\s*', '', text)  # Remove # symbols
+        clean_text = clean_text.replace(':', '').strip()
         clean_text = self._enhance_text_formatting(clean_text)
         return Paragraph(clean_text, self.section_heading_style)
     

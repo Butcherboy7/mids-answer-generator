@@ -151,6 +151,11 @@ if st.button("🚀 Generate Answers", type="primary", disabled=not question_bank
                             reference_content=reference_content
                         )
                         
+                        # Debug: Log the batch answers for troubleshooting
+                        for ans in batch_answers:
+                            if any(keyword in ans["answer"].lower() for keyword in ["error", "api", "failed"]):
+                                st.write(f"Debug - Answer issue: {ans['answer'][:200]}...")
+                        
                         # Check if all answers are error messages
                         error_count = sum(1 for ans in batch_answers if 
                                         "error" in ans["answer"].lower() or 

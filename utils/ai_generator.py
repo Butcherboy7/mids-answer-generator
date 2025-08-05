@@ -116,6 +116,10 @@ class AIGenerator:
             except Exception as e:
                 error_msg = str(e).lower()
                 
+                # Debug logging for Streamlit
+                import streamlit as st
+                st.write(f"API Error Debug: {str(e)}")
+                
                 # Check for specific error types
                 if "500" in error_msg or "internal" in error_msg:
                     if attempt < max_retries - 1:

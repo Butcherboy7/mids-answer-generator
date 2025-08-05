@@ -352,12 +352,12 @@ class PDFCompiler:
         return story
     
     def _format_answer_text(self, answer_text: str) -> list:
-        """Format answer text with advanced styling for code, math, and special characters"""
+        """Format answer text with simple, reliable formatting"""
         
         paragraphs = []
         
-        # Pre-process text for special characters and better formatting
-        answer_text = self._preprocess_text(answer_text)
+        # Simple text preprocessing without complex formatting
+        answer_text = self._simple_text_cleanup(answer_text)
         
         # Split text into paragraphs
         text_paragraphs = answer_text.split('\n\n')
@@ -367,35 +367,28 @@ class PDFCompiler:
             if not para:
                 continue
             
-            # Handle different content types with enhanced formatting
-            if hasattr(self, 'current_subject') and self._is_code_block(para, self.current_subject):
-                # Enhanced code blocks with syntax highlighting (only for programming subjects)
-                paragraphs.extend(self._format_code_block(para))
-            
-            elif self._is_math_formula(para):
-                # Mathematical formulas with LaTeX-like rendering
-                paragraphs.extend(self._format_math_formula(para))
-            
-            elif self._is_section_heading(para):
-                # Section headings with improved styling
-                clean_heading = para.replace('**', '').replace('#', '').strip()
-                paragraphs.append(Paragraph(f"<b>{self._escape_and_enhance_html(clean_heading)}</b>", self.section_heading_style))
+            # Check for section headings (lines ending with colon)
+            if self._is_simple_heading(para):
+                # Use ReportLab's native styling for headings
+                clean_heading = para.replace(':', '').strip()
+                paragraphs.append(Paragraph(clean_heading, self.section_heading_style))
             
             elif self._is_list_item(para):
-                # Enhanced list items with proper bullets
-                paragraphs.append(self._format_list_item(para))
+                # Simple list formatting
+                paragraphs.append(self._format_simple_list_item(para))
             
             else:
-                # Regular paragraphs with enhanced text processing
+                # Regular paragraphs with simple text
                 lines = para.split('\n')
                 for line in lines:
                     line = line.strip()
                     if line:
-                        formatted_line = self._enhance_text_formatting(line)
-                        paragraphs.append(Paragraph(formatted_line, self.answer_style))
+                        # Use clean text without HTML formatting
+                        clean_line = self._enhance_text_formatting(line)
+                        paragraphs.append(Paragraph(clean_line, self.answer_style))
             
-            # Add appropriate spacing between paragraphs
-            paragraphs.append(Spacer(1, 6))
+            # Add spacing between paragraphs
+            paragraphs.append(Spacer(1, 8))
         
         return paragraphs
     
@@ -618,28 +611,59 @@ class PDFCompiler:
         return Paragraph(f"• {formatted_text}", self.list_style)
     
     def _enhance_text_formatting(self, text: str) -> str:
-        """Enhance text with bold, italic formatting - safe for PDF parsing"""
+        """Simple text cleaning for safe PDF generation"""
         
-        # First handle HTML entities from AI responses and convert them back to proper markup
-        text = text.replace('&lt;b&gt;', '<b>').replace('&lt;/b&gt;', '</b>')
-        text = text.replace('&lt;i&gt;', '<i>').replace('&lt;/i&gt;', '</i>')
-        text = text.replace('&lt;u&gt;', '<u>').replace('&lt;/u&gt;', '</u>')
+        # Clean up any HTML entities and special characters
+        text = text.replace('&lt;', '<').replace('&gt;', '>').replace('&amp;', '&')
+        text = text.replace('&quot;', '"').replace('&nbsp;', ' ')
         
-        # Handle inline code with backticks - simplified to avoid nested tag conflicts
-        text = re.sub(r'`([^`]+)`', r'[\1]', text)
+        # Remove any existing HTML tags completely to avoid parsing issues
+        text = re.sub(r'<[^>]+>', '', text)
         
-        # Handle bold text
-        text = re.sub(r'\*\*([^*]+)\*\*', r'<b>\1</b>', text)
-        text = re.sub(r'__([^_]+)__', r'<b>\1</b>', text)
+        # Clean up markdown formatting - convert to simple text
+        text = re.sub(r'\*\*([^*]+)\*\*', r'\1', text)  # Remove bold markup
+        text = re.sub(r'__([^_]+)__', r'\1', text)      # Remove bold markup
+        text = re.sub(r'\*([^*]+)\*', r'\1', text)      # Remove italic markup
+        text = re.sub(r'_([^_]+)_', r'\1', text)        # Remove italic markup
+        text = re.sub(r'`([^`]+)`', r'[\1]', text)      # Convert code to brackets
         
-        # Handle italic text - be more careful with nested formatting
-        text = re.sub(r'(?<!\*)\*([^*]+)\*(?!\*)', r'<i>\1</i>', text)
-        text = re.sub(r'(?<!_)_([^_]+)_(?!_)', r'<i>\1</i>', text)
-        
-        # Clean up any problematic nested tags to prevent parser errors
-        text = self._clean_nested_tags(text)
+        # Clean up multiple spaces and ensure proper encoding
+        text = re.sub(r'\s+', ' ', text).strip()
         
         return text
+    
+    def _simple_text_cleanup(self, text: str) -> str:
+        """Simple text cleanup without complex formatting"""
+        
+        # Replace common problematic characters
+        text = text.replace('"', '"').replace('"', '"')
+        text = text.replace(''', "'").replace(''', "'")
+        text = text.replace('–', '-').replace('—', '-')
+        
+        # Remove any HTML-like tags completely
+        text = re.sub(r'<[^>]+>', '', text)
+        
+        # Clean up excessive whitespace
+        text = re.sub(r'\s+', ' ', text)
+        text = re.sub(r'\n\s*\n', '\n\n', text)
+        
+        return text.strip()
+    
+    def _is_simple_heading(self, text: str) -> bool:
+        """Check if text is a simple heading (ends with colon, short length)"""
+        return (text.endswith(':') and len(text) < 80 and '\n' not in text)
+    
+    def _format_simple_list_item(self, text: str) -> Paragraph:
+        """Format list item with simple bullet point"""
+        
+        # Remove existing bullets and clean up
+        clean_text = text.lstrip('•-*').strip()
+        if clean_text.startswith(('1.', '2.', '3.', '4.', '5.')):
+            # Keep numbered lists as is
+            return Paragraph(clean_text, self.list_style)
+        else:
+            # Add simple bullet
+            return Paragraph(f"• {clean_text}", self.list_style)
     
     def _is_math_formula(self, text: str) -> bool:
         """Check if text contains mathematical formulas"""

@@ -98,8 +98,8 @@ class AIGenerator:
         )
         
         # Implement robust retry mechanism for API errors
-        max_retries = 3
-        base_delay = 2
+        max_retries = 5  # More retries for better reliability
+        base_delay = 3   # Longer initial delay
         
         for attempt in range(max_retries):
             try:
@@ -145,8 +145,9 @@ class AIGenerator:
                         
                 elif "rate limit" in error_msg or "quota" in error_msg:
                     if attempt < max_retries - 1:
-                        st.warning(f"API rate limit reached. Waiting longer before retry...")
-                        time.sleep(10)  # Longer delay for rate limits
+                        wait_time = 15 + (attempt * 10)  # Progressive delay for rate limits
+                        st.warning(f"API rate limit reached. Waiting {wait_time} seconds before retry...")
+                        time.sleep(wait_time)
                         continue
                     else:
                         error_response = "API rate limit exceeded. Please wait a few minutes before trying again."

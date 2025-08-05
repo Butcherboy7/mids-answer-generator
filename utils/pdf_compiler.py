@@ -109,9 +109,9 @@ class PDFCompiler:
         self.section_heading_style = ParagraphStyle(
             'SectionHeading',
             parent=self.styles['Normal'],
-            fontSize=12,
-            spaceAfter=8,
-            spaceBefore=12,
+            fontSize=14,  # Larger for better hierarchy
+            spaceAfter=10,
+            spaceBefore=15,
             textColor=colors.black,
             fontName='Helvetica-Bold'
         )
@@ -608,27 +608,25 @@ class PDFCompiler:
         return Paragraph(f"• {formatted_text}", self.list_style)
     
     def _enhance_text_formatting(self, text: str) -> str:
-        """Smart text formatting using ReportLab's native capabilities"""
+        """Ultra-safe text formatting without HTML tags"""
         
-        # Clean up HTML entities first
+        # Remove ALL HTML tags completely to prevent any parsing issues
+        text = re.sub(r'<[^>]+>', '', text)
+        
+        # Clean up HTML entities
         text = text.replace('&lt;', '<').replace('&gt;', '>').replace('&amp;', '&')
         text = text.replace('&quot;', '"').replace('&nbsp;', ' ')
         
-        # Remove problematic HTML tags but keep simple ones
-        text = re.sub(r'<font[^>]*>', '', text)
-        text = re.sub(r'</font>', '', text)
+        # Remove markdown formatting entirely for safety
+        text = re.sub(r'\*\*([^*]+)\*\*', r'\1', text)  # Remove bold markup
+        text = re.sub(r'__([^_]+)__', r'\1', text)      # Remove bold markup  
+        text = re.sub(r'\*([^*]+)\*', r'\1', text)      # Remove italic markup
+        text = re.sub(r'_([^_]+)_', r'\1', text)        # Remove italic markup
+        text = re.sub(r'`([^`]+)`', r'[\1]', text)      # Convert code to brackets
         
-        # Convert markdown to ReportLab formatting
-        text = re.sub(r'\*\*([^*]+)\*\*', r'<b>\1</b>', text)  # Bold
-        text = re.sub(r'__([^_]+)__', r'<b>\1</b>', text)      # Bold
-        text = re.sub(r'\*([^*]+)\*', r'<i>\1</i>', text)      # Italic
-        text = re.sub(r'_([^_]+)_', r'<i>\1</i>', text)        # Italic
-        
-        # Handle inline code - simple brackets for safety
-        text = re.sub(r'`([^`]+)`', r'[\1]', text)
-        
-        # Clean up spaces
+        # Clean up spaces and problematic characters
         text = re.sub(r'\s+', ' ', text).strip()
+        text = text.replace('<br>', ' ').replace('<br/>', ' ')
         
         return text
     
@@ -760,9 +758,10 @@ class PDFCompiler:
         return elements
     
     def _format_heading(self, text: str) -> Paragraph:
-        """Format headings with proper styling"""
+        """Format headings with safe styling"""
         clean_text = text.replace(':', '').strip()
-        return Paragraph(f"<b>{clean_text}</b>", self.section_heading_style)
+        clean_text = self._enhance_text_formatting(clean_text)
+        return Paragraph(clean_text, self.section_heading_style)
     
     def _format_smart_list(self, text: str) -> list:
         """Format lists with proper bullets and indentation"""

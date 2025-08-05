@@ -5,6 +5,8 @@ from typing import List, Optional, Tuple
 import tempfile
 import os
 from docx import Document
+from PIL import Image
+import pytesseract
 
 class PDFProcessor:
     """Handles PDF text extraction and processing"""
@@ -18,12 +20,28 @@ class PDFProcessor:
             r'^\(\d+\)\s+',  # (1) Question
         ]
     
-    def extract_text_from_pdf(self, uploaded_file) -> str:
-        """Extract text from uploaded PDF file with enhanced extraction"""
+    def extract_text_from_document(self, uploaded_file) -> str:
+        """Extract text from uploaded document (PDF, Word, or Image)"""
         try:
             # Reset file pointer
             uploaded_file.seek(0)
+            file_extension = uploaded_file.name.lower().split('.')[-1]
             
+            if file_extension == 'pdf':
+                return self._extract_text_from_pdf(uploaded_file)
+            elif file_extension in ['docx', 'doc']:
+                return self._extract_text_from_word(uploaded_file)
+            elif file_extension in ['png', 'jpg', 'jpeg']:
+                return self._extract_text_from_image(uploaded_file)
+            else:
+                raise Exception(f"Unsupported file format: {file_extension}")
+                
+        except Exception as e:
+            raise Exception(f"Failed to extract text from document: {str(e)}")
+    
+    def _extract_text_from_pdf(self, uploaded_file) -> str:
+        """Extract text from PDF file with enhanced extraction"""
+        try:
             # Save to temporary file
             with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp_file:
                 tmp_file.write(uploaded_file.read())
@@ -63,6 +81,56 @@ class PDFProcessor:
         except Exception as e:
             raise Exception(f"Failed to extract text from PDF: {str(e)}")
     
+    def _extract_text_from_word(self, uploaded_file) -> str:
+        """Extract text from Word document"""
+        try:
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.docx') as tmp_file:
+                tmp_file.write(uploaded_file.read())
+                tmp_path = tmp_file.name
+            
+            try:
+                doc = Document(tmp_path)
+                full_text = ""
+                for paragraph in doc.paragraphs:
+                    if paragraph.text.strip():
+                        full_text += paragraph.text + "\n"
+                
+                # Also extract text from tables
+                for table in doc.tables:
+                    for row in table.rows:
+                        for cell in row.cells:
+                            if cell.text.strip():
+                                full_text += cell.text + " "
+                        full_text += "\n"
+                
+                return full_text
+            finally:
+                os.unlink(tmp_path)
+                
+        except Exception as e:
+            raise Exception(f"Failed to extract text from Word document: {str(e)}")
+    
+    def _extract_text_from_image(self, uploaded_file) -> str:
+        """Extract text from image using OCR"""
+        try:
+            # Load image
+            image = Image.open(uploaded_file)
+            
+            # Use OCR to extract text
+            text = pytesseract.image_to_string(image)
+            
+            if not text.strip():
+                raise Exception("No text found in image. Please ensure the image contains readable text.")
+            
+            return text
+            
+        except Exception as e:
+            # Provide helpful error message for OCR issues
+            if "tesseract" in str(e).lower():
+                raise Exception("OCR service not available. Please convert your image to PDF or Word format.")
+            else:
+                raise Exception(f"Failed to extract text from image: {str(e)}")
+    
     def extract_questions(self, text: str) -> List[str]:
         """Extract questions from text using improved pattern matching"""
         
@@ -73,60 +141,25 @@ class PDFProcessor:
         questions = self._parse_questions(text)
         return questions
     
-    def _extract_text_from_pdf(self, pdf_file) -> str:
-        """Extract text from PDF file"""
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp_file:
-            tmp_file.write(pdf_file.getvalue())
-            tmp_path = tmp_file.name
-        
-        try:
-            full_text = ""
-            with pdfplumber.open(tmp_path) as pdf:
-                for page in pdf.pages:
-                    page_text = page.extract_text()
-                    if page_text:
-                        full_text += page_text + "\n"
-            return full_text
-        finally:
-            os.unlink(tmp_path)
+
     
-    def _extract_text_from_docx(self, docx_file) -> str:
-        """Extract text from Word document"""
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.docx') as tmp_file:
-            tmp_file.write(docx_file.getvalue())
-            tmp_path = tmp_file.name
-        
-        try:
-            doc = Document(tmp_path)
-            full_text = ""
-            for paragraph in doc.paragraphs:
-                if paragraph.text.strip():
-                    full_text += paragraph.text + "\n"
-            return full_text
-        finally:
-            os.unlink(tmp_path)
+
     
-    def process_college_notes(self, notes_files) -> str:
-        """Process multiple college notes files (PDF/Word) and extract reference content"""
+    def process_reference_documents(self, reference_files) -> str:
+        """Process multiple reference files and extract content"""
         
         all_content = ""
         
-        for notes_file in notes_files:
+        for ref_file in reference_files:
             try:
-                # Extract text based on file type
-                if notes_file.name.lower().endswith('.pdf'):
-                    file_content = self._extract_text_from_pdf(notes_file)
-                elif notes_file.name.lower().endswith(('.docx', '.doc')):
-                    file_content = self._extract_text_from_docx(notes_file)
-                else:
-                    st.warning(f"Unsupported file format for {notes_file.name}. Skipping.")
-                    continue
+                # Extract text using the universal method
+                file_content = self.extract_text_from_document(ref_file)
                 
                 if file_content.strip():
                     all_content += file_content + "\n\n"
                 
             except Exception as e:
-                st.warning(f"Could not process notes file {notes_file.name}: {str(e)}")
+                st.warning(f"Could not process reference file {ref_file.name}: {str(e)}")
                 continue
         
         return self._chunk_content(all_content)

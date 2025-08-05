@@ -44,19 +44,19 @@ col1, col2 = st.columns([2, 1])
 with col1:
     st.subheader("📄 Upload Documents")
     
-    # Question bank upload
+    # Question bank upload - now supports multiple formats
     question_bank = st.file_uploader(
         "**Question Bank (Required)**",
-        type=['pdf'],
-        help="Upload a PDF containing the questions you want answers for"
+        type=['pdf', 'docx', 'doc', 'png', 'jpg', 'jpeg'],
+        help="Upload your question document (PDF, Word, or Image)"
     )
     
-    # College notes upload (optional)
+    # College notes upload (optional) - multiple formats
     college_notes = st.file_uploader(
         "**College Notes (Optional)**",
-        type=['pdf'],
+        type=['pdf', 'docx', 'doc', 'png', 'jpg', 'jpeg'],
         accept_multiple_files=True,
-        help="Upload reference materials to improve answer quality"
+        help="Upload reference materials in any format to improve answer quality"
     )
 
 with col2:
@@ -79,9 +79,9 @@ if st.button("🚀 Generate Answers", type="primary", disabled=not question_bank
                 ai_generator = AIGenerator()
                 pdf_compiler = PDFCompiler()
                 
-                # Step 1: Extract text
+                # Step 1: Extract text from any supported format
                 st.info("📄 Extracting text from your document...")
-                extracted_text = pdf_processor.extract_text_from_pdf(question_bank)
+                extracted_text = pdf_processor.extract_text_from_document(question_bank)
                 
                 if not extracted_text or len(extracted_text.strip()) < 50:
                     st.error("❌ Could not extract readable text from the PDF. Please ensure your document contains text (not just images).")
@@ -106,11 +106,11 @@ if st.button("🚀 Generate Answers", type="primary", disabled=not question_bank
                     if len(questions) > 5:
                         st.write(f"... and {len(questions)-5} more questions")
                 
-                # Step 3: Process reference notes
+                # Step 3: Process reference notes (handle multiple file formats)
                 reference_content = ""
                 if college_notes:
                     st.info("📚 Processing your reference notes...")
-                    reference_content = pdf_processor.process_college_notes(college_notes)
+                    reference_content = pdf_processor.process_reference_documents(college_notes)
                     if reference_content:
                         st.success(f"✅ Processed {len(college_notes)} reference documents")
                 

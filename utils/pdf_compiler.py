@@ -20,68 +20,99 @@ class PDFCompiler:
         os.makedirs("data", exist_ok=True)
     
     def _setup_custom_styles(self):
-        """Setup custom paragraph styles for the PDF"""
+        """Setup clean, professional paragraph styles for the PDF"""
         
-        # Title style
+        # Clean title style - black text, centered
         self.title_style = ParagraphStyle(
             'CustomTitle',
             parent=self.styles['Title'],
-            fontSize=24,
+            fontSize=28,
+            spaceAfter=40,
+            spaceBefore=20,
+            alignment=TA_CENTER,
+            textColor=colors.black,
+            fontName='Helvetica-Bold'
+        )
+        
+        # Subtitle style for cover page
+        self.subtitle_style = ParagraphStyle(
+            'CustomSubtitle',
+            parent=self.styles['Normal'],
+            fontSize=14,
             spaceAfter=30,
             alignment=TA_CENTER,
-            textColor=colors.darkblue
+            textColor=colors.grey,
+            fontName='Helvetica'
         )
         
-        # Heading style
-        self.heading_style = ParagraphStyle(
-            'CustomHeading',
-            parent=self.styles['Heading1'],
-            fontSize=16,
-            spaceAfter=12,
-            spaceBefore=20,
-            textColor=colors.darkblue,
-            borderWidth=1,
-            borderColor=colors.darkblue,
-            borderPadding=5
-        )
-        
-        # Subheading style
-        self.subheading_style = ParagraphStyle(
-            'CustomSubheading',
-            parent=self.styles['Heading2'],
-            fontSize=14,
-            spaceAfter=8,
-            spaceBefore=12,
-            textColor=colors.darkgreen
-        )
-        
-        # Question style
+        # Question style - bold, clean, well-spaced
         self.question_style = ParagraphStyle(
             'QuestionStyle',
             parent=self.styles['Normal'],
-            fontSize=12,
-            spaceAfter=8,
-            spaceBefore=16,
-            textColor=colors.darkred,
+            fontSize=13,
+            spaceAfter=15,
+            spaceBefore=25,
+            textColor=colors.black,
             fontName='Helvetica-Bold',
-            leftIndent=20,
-            rightIndent=20,
-            borderWidth=1,
-            borderColor=colors.lightgrey,
-            borderPadding=10,
-            backColor=colors.lightgrey
+            leftIndent=0,
+            rightIndent=0
         )
         
-        # Answer style
+        # Main answer style - clean, readable
         self.answer_style = ParagraphStyle(
             'AnswerStyle',
             parent=self.styles['Normal'],
             fontSize=11,
+            spaceAfter=8,
+            spaceBefore=6,
+            alignment=TA_JUSTIFY,
+            leftIndent=15,
+            rightIndent=15,
+            leading=16,
+            textColor=colors.black,
+            fontName='Helvetica'
+        )
+        
+        # Code style for technical content
+        self.code_style = ParagraphStyle(
+            'CodeStyle',
+            parent=self.styles['Code'],
+            fontSize=10,
             spaceAfter=12,
             spaceBefore=8,
-            alignment=TA_JUSTIFY,
-            leftIndent=20,
-            rightIndent=20
+            leftIndent=25,
+            rightIndent=25,
+            leading=13,
+            textColor=colors.black,
+            fontName='Courier',
+            backColor=colors.lightgrey,
+            borderWidth=1,
+            borderColor=colors.grey,
+            borderPadding=8
+        )
+        
+        # List item style
+        self.list_style = ParagraphStyle(
+            'ListStyle',
+            parent=self.styles['Normal'],
+            fontSize=11,
+            spaceAfter=4,
+            leftIndent=25,
+            rightIndent=15,
+            leading=15,
+            textColor=colors.black,
+            fontName='Helvetica'
+        )
+        
+        # Bold heading style for sections within answers
+        self.section_heading_style = ParagraphStyle(
+            'SectionHeading',
+            parent=self.styles['Normal'],
+            fontSize=12,
+            spaceAfter=8,
+            spaceBefore=12,
+            textColor=colors.black,
+            fontName='Helvetica-Bold'
         )
     
     def compile_answers_pdf(self, answers: list, subject: str, mode: str, custom_prompt: str = "") -> str:
@@ -253,7 +284,7 @@ class PDFCompiler:
         return story
     
     def _format_answer_text(self, answer_text: str) -> list:
-        """Format answer text with proper styling"""
+        """Format answer text with professional styling and structure"""
         
         paragraphs = []
         
@@ -268,45 +299,85 @@ class PDFCompiler:
             # Clean and format the text
             formatted_text = self._clean_text_for_pdf(para)
             
-            # Apply different styles based on content
-            if para.startswith('#') or para.startswith('**') and para.endswith('**'):
-                # This looks like a heading
+            # Detect different content types and apply appropriate styling
+            if self._is_code_block(para):
+                # Code block - use monospace font with background
+                code_text = para.replace('```', '').strip()
+                paragraphs.append(Paragraph(code_text, self.code_style))
+                
+            elif self._is_section_heading(para):
+                # Section heading within answer
                 clean_text = para.replace('#', '').replace('**', '').strip()
-                paragraphs.append(Paragraph(clean_text, self.subheading_style))
+                paragraphs.append(Paragraph(f"<b>{clean_text}</b>", self.section_heading_style))
+                
+            elif self._is_list_item(para):
+                # List item
+                paragraphs.append(Paragraph(formatted_text, self.list_style))
+                
             else:
                 # Regular paragraph
                 paragraphs.append(Paragraph(formatted_text, self.answer_style))
+            
+            # Add small spacing between paragraphs
+            paragraphs.append(Spacer(1, 4))
         
         return paragraphs
     
+    def _is_code_block(self, text: str) -> bool:
+        """Check if text is a code block"""
+        return (text.startswith('```') or 
+                text.count('(') > 2 and text.count(')') > 2 or
+                'def ' in text or 'function ' in text or 
+                'class ' in text or 'import ' in text)
+    
+    def _is_section_heading(self, text: str) -> bool:
+        """Check if text is a section heading"""
+        return (text.startswith('#') or 
+                (text.startswith('**') and text.endswith('**') and len(text) < 100) or
+                text.endswith(':') and len(text.split()) < 5)
+    
+    def _is_list_item(self, text: str) -> bool:
+        """Check if text is a list item"""
+        return (text.startswith('•') or 
+                text.startswith('-') or 
+                text.startswith('*') or
+                re.match(r'^\d+\.', text))
+    
     def _clean_text_for_pdf(self, text: str) -> str:
-        """Clean and format text for PDF generation with proper HTML tag handling"""
+        """Clean and format text for PDF generation with professional styling"""
         
-        # First, fix any malformed HTML tags by removing all HTML formatting
-        # This prevents ReportLab parser errors
-        import html
-        
-        # Remove any existing HTML tags completely to avoid conflicts
+        # Remove any existing HTML/XML tags to avoid conflicts
         text = re.sub(r'<[^>]+>', '', text)
         
         # Escape HTML entities
+        import html
         text = html.escape(text)
         
-        # Now apply clean ReportLab formatting
-        # Replace markdown-style formatting with proper ReportLab tags
+        # Apply clean, professional formatting
+        # Bold for important terms and headings
         text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', text)  # Bold
-        text = re.sub(r'\*(.*?)\*(?!\*)', r'<i>\1</i>', text)  # Italic (not part of **)
+        text = re.sub(r'\*(.*?)\*(?!\*)', r'<i>\1</i>', text)  # Italic
         
-        # Handle bullet points
+        # Clean bullet points
         text = re.sub(r'^[\-\*]\s+', '• ', text, flags=re.MULTILINE)
         
-        # Handle numbered lists
+        # Clean numbered lists
         text = re.sub(r'^(\d+)\.\s+', r'\1. ', text, flags=re.MULTILINE)
         
-        # Clean up extra whitespace
+        # Make key terms bold (common academic terms)
+        key_terms = [
+            'Definition:', 'Answer:', 'Solution:', 'Explanation:', 'Example:', 
+            'Note:', 'Important:', 'Key Points:', 'Summary:', 'Conclusion:',
+            'Types:', 'Steps:', 'Process:', 'Method:', 'Algorithm:', 'Formula:'
+        ]
+        
+        for term in key_terms:
+            text = re.sub(f'({re.escape(term)})', r'<b>\1</b>', text, flags=re.IGNORECASE)
+        
+        # Clean up multiple spaces and line breaks
         text = re.sub(r'\s+', ' ', text).strip()
         
-        # Ensure no unclosed tags by checking for balanced tags
+        # Balance HTML tags
         text = self._balance_html_tags(text)
         
         return text

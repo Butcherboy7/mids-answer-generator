@@ -139,22 +139,22 @@ class PDFCompiler:
             fontName='Helvetica-Bold'
         )
         
-        # Code block style with monospace font and background
+        # Code block style with better contrast and readability
         self.code_style = ParagraphStyle(
             'CodeStyle',
             parent=self.styles['Code'],
-            fontSize=8,  # Smaller font size to fit more text
-            spaceAfter=4,
-            spaceBefore=4,
-            leftIndent=15,
-            rightIndent=15,
-            fontName='Courier',
-            textColor=colors.darkblue,
-            backColor=colors.lightgrey,
-            borderColor=colors.grey,
-            borderWidth=0.5,
-            borderPadding=6,  # Reduced padding
-            leading=10  # Tighter line spacing
+            fontSize=9,  # Slightly larger for better readability
+            spaceAfter=6,
+            spaceBefore=6,
+            leftIndent=12,
+            rightIndent=12,
+            fontName='Courier-Bold',  # Bold for better contrast
+            textColor=colors.black,   # Black text for better contrast
+            backColor=colors.Color(0.95, 0.95, 0.95),  # Light gray background
+            borderColor=colors.Color(0.7, 0.7, 0.7),   # Darker border
+            borderWidth=1,
+            borderPadding=8,
+            leading=12  # More spacing between lines
         )
         
         # Mathematical formula style
@@ -472,14 +472,15 @@ class PDFCompiler:
         return elements
     
     def _format_code_line(self, line: str) -> str:
-        """Format individual code lines - simplified to avoid parser errors"""
+        """Format individual code lines with minimal escaping"""
         
-        # Simple escaping for code content without complex formatting
-        line = line.replace('<', '&lt;').replace('>', '&gt;').replace('&', '&amp;')
+        # Minimal escaping - only escape ampersands that aren't part of entities
+        # Don't escape < and > in code as they're common in programming
+        line = line.replace('&', '&amp;')
         
         return line
     
-    def _wrap_long_code_line(self, line: str, max_length: int = 70) -> list:
+    def _wrap_long_code_line(self, line: str, max_length: int = 80) -> list:
         """Wrap long code lines to prevent overflow in PDF"""
         
         if len(line) <= max_length:

@@ -266,12 +266,14 @@ SUBJECT-SPECIFIC GUIDELINES FOR PHYSICS:
             "Computer Science": """
 SUBJECT-SPECIFIC GUIDELINES FOR COMPUTER SCIENCE:
 - Include code examples with proper syntax highlighting using ```javascript, ```python, ```java, etc.
+- Keep code lines under 70 characters for better PDF formatting
 - Explain time and space complexity with mathematical notation like O(n²), Ω(log n)
 - Provide practical implementation details with inline code `functions()` and `variables`
 - Include system design considerations with architectural diagrams in text
 - Use technical terminology like APIs, algorithms, data structures, OOP, etc.
 - Show code snippets for algorithms, functions, and key programming concepts
 - Format technical specifications and requirements clearly
+- When showing HTML/XML, use proper formatting without excessive nesting
 """,
             "History": """
 SUBJECT-SPECIFIC GUIDELINES FOR HISTORY:

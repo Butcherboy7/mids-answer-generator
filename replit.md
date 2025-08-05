@@ -15,6 +15,7 @@ The College Answer Generator is a comprehensive, GitHub-ready Streamlit-based we
 - ✅ **Professional Documentation**: Comprehensive setup guides and contribution workflows
 - ✅ **Robust Error Handling**: Fixed PDF parsing issues and improved stability
 - ✅ **Replit Migration**: Successfully migrated from Replit Agent to standard Replit environment with proper Streamlit configuration
+- ⚠️ **API Quota Management**: Added handling for Gemini API free tier limits (50 requests/day)
 
 # User Preferences
 
@@ -44,8 +45,9 @@ Preferred communication style: Simple, everyday language.
 ## AI Integration
 - **Provider**: Google Gemini 2.5 Flash model for answer generation
 - **API Management**: Environment variable-based API key configuration
+- **Rate Limiting**: Free tier allows 50 requests per day per project per model
 - **Prompt Engineering**: Dynamic prompt construction based on subject, mode (Understand/Exam), and optional custom instructions
-- **Error Handling**: Graceful fallback responses for API failures
+- **Error Handling**: Graceful fallback responses for API failures and quota exceeded errors
 
 ## Document Processing
 - **Question Extraction**: Regex-based pattern matching for various question numbering formats

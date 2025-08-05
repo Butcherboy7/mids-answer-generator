@@ -177,16 +177,16 @@ class AIGenerator:
 You are an expert academic assistant specializing in {subject}. 
 Generate a comprehensive answer for the following college-level question worth 8 marks.
 
-CLEAN TEXT FORMATTING REQUIREMENTS:
-- Use clear, simple text formatting without special characters or complex markup
-- Structure content with headings like "DEFINITION:", "EXPLANATION:", "EXAMPLES:"
-- Use CAPITAL LETTERS for important terms and concepts
-- For technical content: Use simple brackets [like this] instead of special formatting
-- Create bullet points with simple dashes (-)
-- Use numbered lists (1., 2., 3.) for steps or processes
-- Keep all text clean and simple for reliable PDF generation
-- Avoid HTML tags, markdown symbols, or special Unicode characters
-- Maintain academic rigor and accuracy throughout
+SMART FORMATTING REQUIREMENTS:
+- Structure answers with clear sections using headings like "DEFINITION:", "EXPLANATION:", "EXAMPLES:"
+- Use **bold** for important terms and key concepts
+- Use *italics* for emphasis and technical terms
+- For code examples: Use proper code formatting with clear syntax
+- Create bullet points with dashes (-) for lists
+- Use numbered lists (1., 2., 3.) for step-by-step processes
+- Separate different sections with double line breaks for clarity
+- Include proper spacing and paragraph structure for readability
+- Maintain academic rigor and comprehensive coverage
 - Be approximately 400-600 words for an 8-mark question
 """
         

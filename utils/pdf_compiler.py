@@ -352,43 +352,40 @@ class PDFCompiler:
         return story
     
     def _format_answer_text(self, answer_text: str) -> list:
-        """Format answer text with simple, reliable formatting"""
+        """Smart formatting with proper structure and readability"""
         
         paragraphs = []
         
-        # Simple text preprocessing without complex formatting
-        answer_text = self._simple_text_cleanup(answer_text)
+        # Preprocess text while preserving structure
+        answer_text = self._smart_text_preprocessing(answer_text)
         
-        # Split text into paragraphs
-        text_paragraphs = answer_text.split('\n\n')
+        # Split into sections and paragraphs
+        sections = answer_text.split('\n\n')
         
-        for para in text_paragraphs:
-            para = para.strip()
-            if not para:
+        for section in sections:
+            section = section.strip()
+            if not section:
                 continue
             
-            # Check for section headings (lines ending with colon)
-            if self._is_simple_heading(para):
-                # Use ReportLab's native styling for headings
-                clean_heading = para.replace(':', '').strip()
-                paragraphs.append(Paragraph(clean_heading, self.section_heading_style))
-            
-            elif self._is_list_item(para):
-                # Simple list formatting
-                paragraphs.append(self._format_simple_list_item(para))
-            
+            # Detect and format different content types
+            if self._is_code_section(section):
+                # Format code blocks for programming subjects
+                paragraphs.extend(self._format_smart_code_block(section))
+                
+            elif self._is_heading_section(section):
+                # Format headings with proper styling
+                paragraphs.append(self._format_heading(section))
+                
+            elif self._is_list_section(section):
+                # Format lists with proper bullets and spacing
+                paragraphs.extend(self._format_smart_list(section))
+                
             else:
-                # Regular paragraphs with simple text
-                lines = para.split('\n')
-                for line in lines:
-                    line = line.strip()
-                    if line:
-                        # Use clean text without HTML formatting
-                        clean_line = self._enhance_text_formatting(line)
-                        paragraphs.append(Paragraph(clean_line, self.answer_style))
+                # Regular paragraph with enhanced formatting
+                paragraphs.extend(self._format_regular_paragraph(section))
             
-            # Add spacing between paragraphs
-            paragraphs.append(Spacer(1, 8))
+            # Add proper spacing between sections
+            paragraphs.append(Spacer(1, 12))
         
         return paragraphs
     
@@ -611,23 +608,26 @@ class PDFCompiler:
         return Paragraph(f"• {formatted_text}", self.list_style)
     
     def _enhance_text_formatting(self, text: str) -> str:
-        """Simple text cleaning for safe PDF generation"""
+        """Smart text formatting using ReportLab's native capabilities"""
         
-        # Clean up any HTML entities and special characters
+        # Clean up HTML entities first
         text = text.replace('&lt;', '<').replace('&gt;', '>').replace('&amp;', '&')
         text = text.replace('&quot;', '"').replace('&nbsp;', ' ')
         
-        # Remove any existing HTML tags completely to avoid parsing issues
-        text = re.sub(r'<[^>]+>', '', text)
+        # Remove problematic HTML tags but keep simple ones
+        text = re.sub(r'<font[^>]*>', '', text)
+        text = re.sub(r'</font>', '', text)
         
-        # Clean up markdown formatting - convert to simple text
-        text = re.sub(r'\*\*([^*]+)\*\*', r'\1', text)  # Remove bold markup
-        text = re.sub(r'__([^_]+)__', r'\1', text)      # Remove bold markup
-        text = re.sub(r'\*([^*]+)\*', r'\1', text)      # Remove italic markup
-        text = re.sub(r'_([^_]+)_', r'\1', text)        # Remove italic markup
-        text = re.sub(r'`([^`]+)`', r'[\1]', text)      # Convert code to brackets
+        # Convert markdown to ReportLab formatting
+        text = re.sub(r'\*\*([^*]+)\*\*', r'<b>\1</b>', text)  # Bold
+        text = re.sub(r'__([^_]+)__', r'<b>\1</b>', text)      # Bold
+        text = re.sub(r'\*([^*]+)\*', r'<i>\1</i>', text)      # Italic
+        text = re.sub(r'_([^_]+)_', r'<i>\1</i>', text)        # Italic
         
-        # Clean up multiple spaces and ensure proper encoding
+        # Handle inline code - simple brackets for safety
+        text = re.sub(r'`([^`]+)`', r'[\1]', text)
+        
+        # Clean up spaces
         text = re.sub(r'\s+', ' ', text).strip()
         
         return text
@@ -664,6 +664,147 @@ class PDFCompiler:
         else:
             # Add simple bullet
             return Paragraph(f"• {clean_text}", self.list_style)
+    
+    def _smart_text_preprocessing(self, text: str) -> str:
+        """Intelligent text preprocessing that preserves structure"""
+        
+        # Fix common encoding issues
+        text = text.replace('"', '"').replace('"', '"')
+        text = text.replace(''', "'").replace(''', "'")
+        text = text.replace('–', '-').replace('—', '-')
+        
+        # Clean up excessive whitespace while preserving structure
+        text = re.sub(r' +', ' ', text)  # Multiple spaces to single
+        text = re.sub(r'\n\s*\n\s*\n+', '\n\n', text)  # Multiple newlines to double
+        
+        return text.strip()
+    
+    def _is_code_section(self, text: str) -> bool:
+        """Detect code sections for programming subjects"""
+        if not (hasattr(self, 'current_subject') and 
+                any(prog in self.current_subject.lower() for prog in ['computer', 'programming', 'software'])):
+            return False
+        
+        # Look for code patterns
+        code_indicators = [
+            r'def\s+\w+\(', r'function\s+\w+\(', r'class\s+\w+', 
+            r'import\s+\w+', r'#include', r'<\w+>', r'{\s*\w+',
+            r'console\.log', r'print\(', r'SELECT\s+', r'if\s*\(',
+            r'for\s*\(', r'while\s*\('
+        ]
+        
+        return any(re.search(pattern, text, re.IGNORECASE) for pattern in code_indicators)
+    
+    def _is_heading_section(self, text: str) -> bool:
+        """Detect headings and important section titles"""
+        return (text.endswith(':') and len(text) < 100 and '\n' not in text) or \
+               text.isupper() or \
+               (text.startswith(('DEFINITION', 'EXPLANATION', 'EXAMPLE', 'ANSWER', 'SOLUTION')))
+    
+    def _is_list_section(self, text: str) -> bool:
+        """Detect list sections"""
+        lines = text.split('\n')
+        return len(lines) > 1 and any(line.strip().startswith(('-', '•', '*')) or 
+                                     re.match(r'^\d+\.', line.strip()) for line in lines)
+    
+    def _format_smart_code_block(self, text: str) -> list:
+        """Format code blocks with proper styling and background"""
+        elements = []
+        
+        lines = text.split('\n')
+        code_lines = []
+        
+        for line in lines:
+            if line.strip():
+                # Clean and wrap long lines
+                clean_line = line.replace('\t', '    ')  # Convert tabs to spaces
+                if len(clean_line) > 80:
+                    # Wrap long lines
+                    chunks = [clean_line[i:i+80] for i in range(0, len(clean_line), 80)]
+                    code_lines.extend([[chunk] for chunk in chunks])
+                else:
+                    code_lines.append([clean_line])
+        
+        if code_lines:
+            from reportlab.platypus import Table, TableStyle
+            code_table = Table(code_lines, colWidths=[6*inch])
+            
+            # Subject-aware coloring
+            if 'computer' in self.current_subject.lower():
+                bg_color = colors.Color(0.95, 0.98, 1.0)  # Light blue
+                text_color = colors.Color(0.0, 0.2, 0.8)  # Dark blue
+                border_color = colors.Color(0.5, 0.7, 1.0)
+            else:
+                bg_color = colors.Color(0.95, 0.95, 0.95)  # Light gray
+                text_color = colors.black
+                border_color = colors.gray
+            
+            code_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, -1), bg_color),
+                ('FONTNAME', (0, 0), (-1, -1), 'Courier-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 10),
+                ('TEXTCOLOR', (0, 0), (-1, -1), text_color),
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('LEFTPADDING', (0, 0), (-1, -1), 12),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 12),
+                ('TOPPADDING', (0, 0), (-1, -1), 8),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+                ('BOX', (0, 0), (-1, -1), 1, border_color),
+            ]))
+            
+            elements.append(Spacer(1, 6))
+            elements.append(code_table)
+            elements.append(Spacer(1, 6))
+        
+        return elements
+    
+    def _format_heading(self, text: str) -> Paragraph:
+        """Format headings with proper styling"""
+        clean_text = text.replace(':', '').strip()
+        return Paragraph(f"<b>{clean_text}</b>", self.section_heading_style)
+    
+    def _format_smart_list(self, text: str) -> list:
+        """Format lists with proper bullets and indentation"""
+        elements = []
+        lines = text.split('\n')
+        
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+            
+            # Format different list types
+            if re.match(r'^\d+\.', line):
+                # Numbered list
+                elements.append(Paragraph(line, self.list_style))
+            elif line.startswith(('-', '•', '*')):
+                # Bullet list
+                clean_line = line.lstrip('-•*').strip()
+                formatted_line = self._enhance_text_formatting(clean_line)
+                elements.append(Paragraph(f"• {formatted_line}", self.list_style))
+            else:
+                # Regular line in list context
+                formatted_line = self._enhance_text_formatting(line)
+                elements.append(Paragraph(f"• {formatted_line}", self.list_style))
+            
+            elements.append(Spacer(1, 4))
+        
+        return elements
+    
+    def _format_regular_paragraph(self, text: str) -> list:
+        """Format regular paragraphs with proper line spacing"""
+        elements = []
+        lines = text.split('\n')
+        
+        for line in lines:
+            line = line.strip()
+            if line:
+                formatted_line = self._enhance_text_formatting(line)
+                elements.append(Paragraph(formatted_line, self.answer_style))
+                elements.append(Spacer(1, 6))
+        
+        return elements
     
     def _is_math_formula(self, text: str) -> bool:
         """Check if text contains mathematical formulas"""

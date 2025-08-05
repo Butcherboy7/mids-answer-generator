@@ -459,13 +459,34 @@ class PDFCompiler:
         # Add spacing before code block
         elements.append(Spacer(1, 8))
         
+        # Create a table for code block with background
+        code_lines = []
         for line in lines:
             if line.strip():
                 # Break long lines to prevent overflow
                 wrapped_lines = self._wrap_long_code_line(line)
                 for wrapped_line in wrapped_lines:
                     formatted_line = self._format_code_line(wrapped_line)
-                    elements.append(Preformatted(formatted_line, self.code_style))
+                    code_lines.append([formatted_line])
+        
+        if code_lines:
+            # Create table with background for code block
+            from reportlab.platypus import Table, TableStyle
+            code_table = Table(code_lines, colWidths=[6*inch])
+            code_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, -1), colors.Color(0.95, 0.95, 0.95)),
+                ('FONTNAME', (0, 0), (-1, -1), 'Courier-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 9),
+                ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('LEFTPADDING', (0, 0), (-1, -1), 12),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 12),
+                ('TOPPADDING', (0, 0), (-1, -1), 8),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+                ('BOX', (0, 0), (-1, -1), 1, colors.Color(0.7, 0.7, 0.7)),
+            ]))
+            elements.append(code_table)
         
         # Add spacing after code block
         elements.append(Spacer(1, 8))
@@ -573,10 +594,15 @@ class PDFCompiler:
         return Paragraph(f"• {formatted_text}", self.list_style)
     
     def _enhance_text_formatting(self, text: str) -> str:
-        """Enhance text with bold, italic, and inline code formatting - simplified for PDF safety"""
+        """Enhance text with bold, italic, and inline code formatting"""
         
-        # Handle inline code with backticks - use simple monospace without color
-        text = re.sub(r'`([^`]+)`', r'[\1]', text)
+        # First handle HTML entities from AI responses and convert them back to proper markup
+        text = text.replace('&lt;b&gt;', '<b>').replace('&lt;/b&gt;', '</b>')
+        text = text.replace('&lt;i&gt;', '<i>').replace('&lt;/i&gt;', '</i>')
+        text = text.replace('&lt;u&gt;', '<u>').replace('&lt;/u&gt;', '</u>')
+        
+        # Handle inline code with backticks
+        text = re.sub(r'`([^`]+)`', r'<font name="Courier" color="darkblue">[\1]</font>', text)
         
         # Handle bold text
         text = re.sub(r'\*\*([^*]+)\*\*', r'<b>\1</b>', text)
@@ -586,7 +612,7 @@ class PDFCompiler:
         text = re.sub(r'(?<!\*)\*([^*]+)\*(?!\*)', r'<i>\1</i>', text)
         text = re.sub(r'(?<!_)_([^_]+)_(?!_)', r'<i>\1</i>', text)
         
-        return self._escape_and_enhance_html(text)
+        return text
     
     def _is_math_formula(self, text: str) -> bool:
         """Check if text contains mathematical formulas"""

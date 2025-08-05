@@ -143,17 +143,18 @@ class PDFCompiler:
         self.code_style = ParagraphStyle(
             'CodeStyle',
             parent=self.styles['Code'],
-            fontSize=9,
-            spaceAfter=10,
-            spaceBefore=10,
-            leftIndent=20,
-            rightIndent=20,
+            fontSize=8,  # Smaller font size to fit more text
+            spaceAfter=4,
+            spaceBefore=4,
+            leftIndent=15,
+            rightIndent=15,
             fontName='Courier',
             textColor=colors.darkblue,
             backColor=colors.lightgrey,
             borderColor=colors.grey,
             borderWidth=0.5,
-            borderPadding=8
+            borderPadding=6,  # Reduced padding
+            leading=10  # Tighter line spacing
         )
         
         # Mathematical formula style
@@ -444,7 +445,7 @@ class PDFCompiler:
         return text
     
     def _format_code_block(self, code_text: str) -> list:
-        """Format code blocks with enhanced styling and syntax awareness"""
+        """Format code blocks with enhanced styling and line wrapping for long lines"""
         
         elements = []
         
@@ -460,9 +461,11 @@ class PDFCompiler:
         
         for line in lines:
             if line.strip():
-                # Enhanced code formatting with basic syntax highlighting
-                formatted_line = self._format_code_line(line)
-                elements.append(Preformatted(formatted_line, self.code_style))
+                # Break long lines to prevent overflow
+                wrapped_lines = self._wrap_long_code_line(line)
+                for wrapped_line in wrapped_lines:
+                    formatted_line = self._format_code_line(wrapped_line)
+                    elements.append(Preformatted(formatted_line, self.code_style))
         
         # Add spacing after code block
         elements.append(Spacer(1, 8))
@@ -475,6 +478,39 @@ class PDFCompiler:
         line = line.replace('<', '&lt;').replace('>', '&gt;').replace('&', '&amp;')
         
         return line
+    
+    def _wrap_long_code_line(self, line: str, max_length: int = 70) -> list:
+        """Wrap long code lines to prevent overflow in PDF"""
+        
+        if len(line) <= max_length:
+            return [line]
+        
+        wrapped_lines = []
+        current_line = line
+        
+        while len(current_line) > max_length:
+            # Find a good break point (prefer spaces, then operators)
+            break_point = max_length
+            
+            # Look for a space to break at (going backwards from max_length)
+            for i in range(max_length, max(0, max_length - 20), -1):
+                if current_line[i] in [' ', ',', ';', ')', '}', ']']:
+                    break_point = i + 1
+                    break
+            
+            # If no good break point found, force break at max_length
+            if break_point == max_length and len(current_line) > max_length:
+                break_point = max_length
+            
+            # Add the wrapped line
+            wrapped_lines.append(current_line[:break_point])
+            current_line = "    " + current_line[break_point:].lstrip()  # Indent continuation
+        
+        # Add the remaining part
+        if current_line.strip():
+            wrapped_lines.append(current_line)
+        
+        return wrapped_lines
     
     def _format_math_formula(self, formula_text: str) -> list:
         """Format mathematical formulas - simplified to avoid parser errors"""

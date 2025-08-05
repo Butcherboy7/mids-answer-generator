@@ -59,17 +59,17 @@ class PDFCompiler:
             rightIndent=0
         )
         
-        # Main answer style - clean, readable
+        # Main answer style - clean, readable with improved font
         self.answer_style = ParagraphStyle(
             'AnswerStyle',
             parent=self.styles['Normal'],
-            fontSize=11,
-            spaceAfter=8,
-            spaceBefore=6,
-            alignment=TA_JUSTIFY,
+            fontSize=12,  # Larger font for better readability
+            spaceAfter=10,
+            spaceBefore=8,
+            alignment=TA_LEFT,  # Left alignment for better readability
             leftIndent=15,
             rightIndent=15,
-            leading=16,
+            leading=18,  # Better line spacing
             textColor=colors.black,
             fontName='Helvetica'
         )
@@ -186,6 +186,9 @@ class PDFCompiler:
     
     def compile_answers_pdf(self, answers: list, subject: str, mode: str, custom_prompt: str = "") -> str:
         """Compile all answers into a professional PDF document"""
+        
+        # Store subject for formatting decisions
+        self.current_subject = subject
         
         try:
             # Generate unique filename
@@ -365,8 +368,8 @@ class PDFCompiler:
                 continue
             
             # Handle different content types with enhanced formatting
-            if self._is_code_block(para):
-                # Enhanced code blocks with syntax highlighting
+            if hasattr(self, 'current_subject') and self._is_code_block(para, self.current_subject):
+                # Enhanced code blocks with syntax highlighting (only for programming subjects)
                 paragraphs.extend(self._format_code_block(para))
             
             elif self._is_math_formula(para):
@@ -396,12 +399,23 @@ class PDFCompiler:
         
         return paragraphs
     
-    def _is_code_block(self, text: str) -> bool:
-        """Check if text is a code block"""
+    def _is_code_block(self, text: str, subject: str = "") -> bool:
+        """Check if text should be formatted as code block - subject-aware"""
+        
+        # Only use code blocks for programming/computer science subjects
+        programming_subjects = ['computer science', 'programming', 'software', 'coding', 'algorithm', 'data structure']
+        is_programming_subject = any(prog in subject.lower() for prog in programming_subjects)
+        
+        # For non-programming subjects, never format as code block
+        if not is_programming_subject:
+            return False
+        
+        # For programming subjects, check for actual code patterns
         return (text.startswith('```') or 
-                text.count('(') > 2 and text.count(')') > 2 or
-                'def ' in text or 'function ' in text or 
-                'class ' in text or 'import ' in text)
+                ('def ' in text and '(' in text and ')' in text) or
+                ('function ' in text and '(' in text and ')' in text) or
+                ('class ' in text and ('{' in text or ':' in text)) or
+                ('import ' in text and len(text.split('\n')) > 1))
     
     def _is_section_heading(self, text: str) -> bool:
         """Check if text is a section heading"""
@@ -473,18 +487,28 @@ class PDFCompiler:
             # Create table with background for code block
             from reportlab.platypus import Table, TableStyle
             code_table = Table(code_lines, colWidths=[6*inch])
+            # Choose colors based on subject
+            if hasattr(self, 'current_subject') and 'computer' in self.current_subject.lower():
+                bg_color = colors.Color(0.95, 0.98, 1.0)  # Light blue for CS
+                text_color = colors.Color(0.0, 0.2, 0.8)  # Dark blue text
+                border_color = colors.Color(0.5, 0.7, 1.0)  # Blue border
+            else:
+                bg_color = colors.Color(0.95, 0.95, 0.95)  # Light gray
+                text_color = colors.black
+                border_color = colors.Color(0.7, 0.7, 0.7)  # Gray border
+                
             code_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, -1), colors.Color(0.95, 0.95, 0.95)),
+                ('BACKGROUND', (0, 0), (-1, -1), bg_color),
                 ('FONTNAME', (0, 0), (-1, -1), 'Courier-Bold'),
-                ('FONTSIZE', (0, 0), (-1, -1), 9),
-                ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
+                ('FONTSIZE', (0, 0), (-1, -1), 10),  # Slightly larger
+                ('TEXTCOLOR', (0, 0), (-1, -1), text_color),
                 ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
                 ('VALIGN', (0, 0), (-1, -1), 'TOP'),
                 ('LEFTPADDING', (0, 0), (-1, -1), 12),
                 ('RIGHTPADDING', (0, 0), (-1, -1), 12),
                 ('TOPPADDING', (0, 0), (-1, -1), 8),
                 ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
-                ('BOX', (0, 0), (-1, -1), 1, colors.Color(0.7, 0.7, 0.7)),
+                ('BOX', (0, 0), (-1, -1), 1, border_color),
             ]))
             elements.append(code_table)
         

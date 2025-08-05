@@ -114,6 +114,29 @@ class PDFCompiler:
             textColor=colors.black,
             fontName='Helvetica-Bold'
         )
+        
+        # Main heading style for titles and table of contents
+        self.heading_style = ParagraphStyle(
+            'MainHeading',
+            parent=self.styles['Heading1'],
+            fontSize=18,
+            spaceAfter=20,
+            spaceBefore=15,
+            textColor=colors.black,
+            fontName='Helvetica-Bold',
+            alignment=TA_CENTER
+        )
+        
+        # Subheading style for sections
+        self.subheading_style = ParagraphStyle(
+            'SubHeading',
+            parent=self.styles['Heading2'],
+            fontSize=14,
+            spaceAfter=12,
+            spaceBefore=10,
+            textColor=colors.black,
+            fontName='Helvetica-Bold'
+        )
     
     def compile_answers_pdf(self, answers: list, subject: str, mode: str, custom_prompt: str = "") -> str:
         """Compile all answers into a professional PDF document"""
@@ -141,11 +164,7 @@ class PDFCompiler:
             story.extend(self._create_cover_page(subject, mode, len(answers), custom_prompt))
             story.append(PageBreak())
             
-            # Add table of contents
-            story.extend(self._create_table_of_contents(answers))
-            story.append(PageBreak())
-            
-            # Add answers
+            # Add answers section directly (simplified)
             story.extend(self._create_answers_section(answers))
             
             # Build PDF
@@ -332,16 +351,16 @@ class PDFCompiler:
     
     def _is_section_heading(self, text: str) -> bool:
         """Check if text is a section heading"""
-        return (text.startswith('#') or 
-                (text.startswith('**') and text.endswith('**') and len(text) < 100) or
-                text.endswith(':') and len(text.split()) < 5)
+        return bool(text.startswith('#') or 
+                   (text.startswith('**') and text.endswith('**') and len(text) < 100) or
+                   (text.endswith(':') and len(text.split()) < 5))
     
     def _is_list_item(self, text: str) -> bool:
         """Check if text is a list item"""
-        return (text.startswith('•') or 
-                text.startswith('-') or 
-                text.startswith('*') or
-                re.match(r'^\d+\.', text))
+        return bool(text.startswith('•') or 
+                   text.startswith('-') or 
+                   text.startswith('*') or
+                   re.match(r'^\d+\.', text))
     
     def _clean_text_for_pdf(self, text: str) -> str:
         """Clean and format text for PDF generation with professional styling"""

@@ -1,0 +1,72 @@
+Traceback (most recent call last):
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/reportlab/platypus/paraparser.py", line 3218, in parse
+    self.feed(text)
+  File "/nix/store/7d088dip86hlzri9sk0h78b63yfmx0a0-python3-3.11.13/lib/python3.11/html/parser.py", line 110, in feed
+    self.goahead(0)
+  File "/nix/store/7d088dip86hlzri9sk0h78b63yfmx0a0-python3-3.11.13/lib/python3.11/html/parser.py", line 172, in goahead
+    k = self.parse_endtag(i)
+        ^^^^^^^^^^^^^^^^^^^^
+  File "/nix/store/7d088dip86hlzri9sk0h78b63yfmx0a0-python3-3.11.13/lib/python3.11/html/parser.py", line 413, in parse_endtag
+    self.handle_endtag(elem)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/reportlab/platypus/paraparser.py", line 3254, in handle_endtag
+    end()
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/reportlab/platypus/paraparser.py", line 2828, in end_font
+    self._pop('font')
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/reportlab/platypus/paraparser.py", line 3066, in _pop
+    raise ValueError('Parse error: saw </%s> instead of expected </%s>' % (tag,frag.__tag__))
+ValueError: Parse error: saw </font> instead of expected </i>
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/runner/workspace/utils/pdf_compiler.py", line 217, in compile_answers_pdf
+    story.extend(self._create_answers_section(answers))
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/utils/pdf_compiler.py", line 342, in _create_answers_section
+    formatted_answer = self._format_answer_text(answer_data['answer'])
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/utils/pdf_compiler.py", line 386, in _format_answer_text
+    paragraphs.append(self._format_list_item(para))
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/utils/pdf_compiler.py", line 618, in _format_list_item
+    return Paragraph(f"• {formatted_text}", self.list_style)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/reportlab/platypus/paragraph.py", line 1859, in __init__
+    self._setup(text, style, bulletText or getattr(style,'bulletText',None), frags, cleanBlockQuotedText)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/reportlab/platypus/paragraph.py", line 1880, in _setup
+    style, frags, bulletTextFrags = _parser.parse(text,style)
+                                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/reportlab/platypus/paraparser.py", line 3220, in parse
+    annotateException('\nparagraph text %s caused exception' % ascii(text))
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/reportlab/lib/utils.py", line 1176, in annotateException
+    rl_reraise(t,t(sep.join((_ for _ in (msg,str(v),postMsg) if _))),b)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/reportlab/lib/utils.py", line 138, in rl_reraise
+    raise v.with_traceback(b)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/reportlab/platypus/paraparser.py", line 3218, in parse
+    self.feed(text)
+  File "/nix/store/7d088dip86hlzri9sk0h78b63yfmx0a0-python3-3.11.13/lib/python3.11/html/parser.py", line 110, in feed
+    self.goahead(0)
+  File "/nix/store/7d088dip86hlzri9sk0h78b63yfmx0a0-python3-3.11.13/lib/python3.11/html/parser.py", line 172, in goahead
+    k = self.parse_endtag(i)
+        ^^^^^^^^^^^^^^^^^^^^
+  File "/nix/store/7d088dip86hlzri9sk0h78b63yfmx0a0-python3-3.11.13/lib/python3.11/html/parser.py", line 413, in parse_endtag
+    self.handle_endtag(elem)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/reportlab/platypus/paraparser.py", line 3254, in handle_endtag
+    end()
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/reportlab/platypus/paraparser.py", line 2828, in end_font
+    self._pop('font')
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/reportlab/platypus/paraparser.py", line 3066, in _pop
+    raise ValueError('Parse error: saw </%s> instead of expected </%s>' % (tag,frag.__tag__))
+ValueError: 
+paragraph text '<para>\u2022 <font name="Courier" color="darkblue">[<i>ngIf]</font>: Conditionally renders an element or a block of elements. <font name="Courier" color="darkblue">[<div </i>ngIf="showDetails">Details</div>]</font> renders the <font name="Courier" color="darkblue">[div]</font> only if the <font name="Courier" color="darkblue">[showDetails]</font> variable is true. <i> <font name="Courier" color="darkblue">[</i>ngFor]</font>: Iterates over an array and creates a new element for each item. <font name="Courier" color="darkblue">[<li <i>ngFor="let item of items">{{item}}</li>]</font> creates a list item for each item in the <font name="Courier" color="darkblue">[items]</font> array. </i> <font name="Courier" color="darkblue">[<i>ngSwitch]</font>: Implements a switch statement in the template. It allows you to render different elements based on the value of an expression. This provides a cleaner way to manage conditional rendering compared to multiple <font name="Courier" color="darkblue">[</i>ngIf]</font> statements.</para>' caused exception Parse error: saw </font> instead of expected </i>
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/runner/workspace/app.py", line 202, in <module>
+    pdf_path = pdf_compiler.compile_answers_pdf(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/utils/pdf_compiler.py", line 225, in compile_answers_pdf
+    raise Exception(f"Error compiling PDF: {str(e)}")
+Exception: Error compiling PDF: 
+paragraph text '<para>\u2022 <font name="Courier" color="darkblue">[<i>ngIf]</font>: Conditionally renders an element or a block of elements. <font name="Courier" color="darkblue">[<div </i>ngIf="showDetails">Details</div>]</font> renders the <font name="Courier" color="darkblue">[div]</font> only if the <font name="Courier" color="darkblue">[showDetails]</font> variable is true. <i> <font name="Courier" color="darkblue">[</i>ngFor]</font>: Iterates over an array and creates a new element for each item. <font name="Courier" color="darkblue">[<li <i>ngFor="let item of items">{{item}}</li>]</font> creates a list item for each item in the <font name="Courier" color="darkblue">[items]</font> array. </i> <font name="Courier" color="darkblue">[<i>ngSwitch]</font>: Implements a switch statement in the template. It allows you to render different elements based on the value of an expression. This provides a cleaner way to manage conditional rendering compared to multiple <font name="Courier" color="darkblue">[</i>ngIf]</font> statements.</para>' caused exception Parse error: saw </font> instead of expected </i>

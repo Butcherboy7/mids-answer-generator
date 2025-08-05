@@ -618,15 +618,15 @@ class PDFCompiler:
         return Paragraph(f"• {formatted_text}", self.list_style)
     
     def _enhance_text_formatting(self, text: str) -> str:
-        """Enhance text with bold, italic, and inline code formatting"""
+        """Enhance text with bold, italic formatting - safe for PDF parsing"""
         
         # First handle HTML entities from AI responses and convert them back to proper markup
         text = text.replace('&lt;b&gt;', '<b>').replace('&lt;/b&gt;', '</b>')
         text = text.replace('&lt;i&gt;', '<i>').replace('&lt;/i&gt;', '</i>')
         text = text.replace('&lt;u&gt;', '<u>').replace('&lt;/u&gt;', '</u>')
         
-        # Handle inline code with backticks
-        text = re.sub(r'`([^`]+)`', r'<font name="Courier" color="darkblue">[\1]</font>', text)
+        # Handle inline code with backticks - simplified to avoid nested tag conflicts
+        text = re.sub(r'`([^`]+)`', r'[\1]', text)
         
         # Handle bold text
         text = re.sub(r'\*\*([^*]+)\*\*', r'<b>\1</b>', text)
@@ -635,6 +635,9 @@ class PDFCompiler:
         # Handle italic text - be more careful with nested formatting
         text = re.sub(r'(?<!\*)\*([^*]+)\*(?!\*)', r'<i>\1</i>', text)
         text = re.sub(r'(?<!_)_([^_]+)_(?!_)', r'<i>\1</i>', text)
+        
+        # Clean up any problematic nested tags to prevent parser errors
+        text = self._clean_nested_tags(text)
         
         return text
     
@@ -763,3 +766,15 @@ class PDFCompiler:
             result += f'</{tag_name}>'
         
         return result
+    
+    def _clean_nested_tags(self, text: str) -> str:
+        """Clean nested HTML tags to prevent parser errors"""
+        
+        # Remove font tags that are inside other formatting tags
+        text = re.sub(r'<([bi])>([^<]*)<font[^>]*>([^<]*)</font>([^<]*)</\1>', r'<\1>\2\3\4</\1>', text)
+        text = re.sub(r'<font[^>]*>([^<]*)<([bi])>([^<]*)</\2>([^<]*)</font>', r'<\2>\1\3\4</\2>', text)
+        
+        # Remove any remaining problematic font tags
+        text = re.sub(r'<font[^>]*color="[^"]*">([^<]*)</font>', r'\1', text)
+        
+        return text

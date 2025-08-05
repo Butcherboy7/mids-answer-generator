@@ -167,16 +167,23 @@ class PDFProcessor:
     def _parse_questions(self, text: str) -> List[str]:
         """Enhanced question parsing with better pattern recognition"""
         
+        # Debug: Show what text we're working with
+        print(f"DEBUG: Text length: {len(text)}")
+        print(f"DEBUG: First 500 chars: {text[:500]}")
+        
         # Improved question patterns to catch more formats
         enhanced_patterns = [
-            r'^\d+\.\s+(.+)',  # 1. Question
-            r'^\d+\)\s+(.+)',  # 1) Question  
-            r'^Q\d+[\.\)]\s+(.+)',  # Q1. or Q1) Question
-            r'^Question\s+\d+[\.\)]\s+(.+)',  # Question 1. Question
-            r'^\(\d+\)\s+(.+)',  # (1) Question
-            r'^\d+[\.\s]+([A-Z].+)',  # 1. Capital letter start
-            r'^[A-Z]\d+[\.\)]\s+(.+)',  # A1. or B1) Question
+            r'^\d+\.\s*(.+)',  # 1. Question (with optional space)
+            r'^\d+\)\s*(.+)',  # 1) Question  
+            r'^Q\d+[\.\)]\s*(.+)',  # Q1. or Q1) Question
+            r'^Question\s+\d+[\.\)]\s*(.+)',  # Question 1. Question
+            r'^\(\d+\)\s*(.+)',  # (1) Question
+            r'^\d+[\.\s]*([A-Z].+)',  # 1. Capital letter start
+            r'^[A-Z]\d+[\.\)]\s*(.+)',  # A1. or B1) Question
             r'^\d+\s*[-–]\s*(.+)',  # 1 - Question or 1 – Question
+            r'^[a-z]\)\s*(.+)',  # a) Question
+            r'^[A-Z]\)\s*(.+)',  # A) Question
+            r'^\d+\s+(.{20,})',  # Number followed by space and substantial text
         ]
         
         questions = []
@@ -217,23 +224,27 @@ class PDFProcessor:
         if current_question:
             questions.append(current_question.strip())
         
+        print(f"DEBUG: Raw questions found: {len(questions)}")
+        for i, q in enumerate(questions):
+            print(f"DEBUG Q{i+1}: {q[:100]}...")
+        
         # Enhanced filtering and cleaning
         cleaned_questions = []
         for q in questions:
             # Remove extra whitespace and clean up
             q = re.sub(r'\s+', ' ', q).strip()
             
-            # Skip if too short or just numbers/symbols
-            if len(q) < 15 or re.match(r'^[\d\.\)\(\s\-–]+$', q):
+            # Skip if too short (reduced threshold) or just numbers/symbols
+            if len(q) < 10 or re.match(r'^[\d\.\)\(\s\-–]+$', q):
                 continue
                 
-            # Skip common non-question text
+            # Skip common non-question text (more lenient)
             skip_patterns = [
-                r'^(page|section|chapter|unit|marks?|time|duration)',
-                r'^(note|instruction|direction)',
-                r'^(answer|solution|hint)',
-                r'^(total|maximum|minimum)',
-                r'^(name|roll|class|date)'
+                r'^(page|section|chapter|unit)\s+\d+',
+                r'^(note|instruction|direction)s?\s*:',
+                r'^(answer|solution|hint)\s*:',
+                r'^(total|maximum|minimum)\s+marks?',
+                r'^(name|roll|class|date)\s*:'
             ]
             
             should_skip = False
@@ -245,51 +256,25 @@ class PDFProcessor:
             if not should_skip:
                 cleaned_questions.append(q)
         
-        return cleaned_questions
-        
-        for i, line in enumerate(lines):
-            # Check if line starts with a question pattern
-            is_question_start = any(re.match(pattern, line) for pattern in self.question_patterns)
-            
-            if is_question_start:
-                # Save previous question if exists
-                if current_question.strip() and question_started:
-                    questions.append(current_question.strip())
-                
-                # Start new question
-                current_question = line
-                question_started = True
-            else:
-                # Continue current question if we've started one
-                if question_started:
-                    # Check if this might be start of next question (common patterns)
-                    next_line_is_question = (i + 1 < len(lines) and 
-                                           any(re.match(pattern, lines[i + 1]) for pattern in self.question_patterns))
+        # If no questions found with strict patterns, try looser detection
+        if not cleaned_questions:
+            print("DEBUG: No questions with strict patterns, trying looser detection...")
+            lines = text.split('\n')
+            for line in lines:
+                line = line.strip()
+                if len(line) > 15:
+                    # Look for question indicators
+                    question_indicators = ['what', 'how', 'why', 'when', 'where', 'which', 'who', 
+                                         'define', 'explain', 'describe', 'calculate', 'find', 
+                                         'solve', 'prove', 'derive', 'analyze', 'compare', 'discuss']
                     
-                    # If current line looks like an answer or next line is a question, stop here
-                    if (line.lower().startswith(('answer:', 'ans:', 'solution:', 'sol:')) or 
-                        next_line_is_question):
-                        if current_question.strip():
-                            questions.append(current_question.strip())
-                            current_question = ""
-                            question_started = False
-                    else:
-                        # Continue building the question
-                        current_question += " " + line
+                    if any(indicator in line.lower() for indicator in question_indicators):
+                        cleaned_questions.append(line)
+                    elif line.endswith('?'):
+                        cleaned_questions.append(line)
         
-        # Add the last question
-        if current_question.strip() and question_started:
-            questions.append(current_question.strip())
-        
-        # Filter out very short questions and clean them
-        filtered_questions = []
-        for q in questions:
-            # Remove common answer indicators from questions
-            cleaned_q = re.sub(r'\s*(answer|ans|solution|sol)\s*:.*$', '', q, flags=re.IGNORECASE).strip()
-            if len(cleaned_q.split()) > 3:
-                filtered_questions.append(cleaned_q)
-        
-        return filtered_questions
+        print(f"DEBUG: Final cleaned questions: {len(cleaned_questions)}")
+        return cleaned_questions
     
     def _chunk_content(self, content: str, max_chunk_size: int = 2000) -> str:
         """Chunk large content for better processing"""

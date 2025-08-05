@@ -2,8 +2,7 @@ import os
 import time
 import asyncio
 from typing import List, Dict
-from google import genai
-from google.genai import types
+import google.generativeai as genai
 import streamlit as st
 
 class AIGenerator:
@@ -15,8 +14,8 @@ class AIGenerator:
             st.error("GEMINI_API_KEY environment variable not found. Please set your API key.")
             st.stop()
         
-        self.client = genai.Client(api_key=api_key)
-        self.model = "gemini-2.5-flash"
+        genai.configure(api_key=api_key)
+        self.model = "gemini-1.5-flash"
         self.rate_limit_delay = 1.0  # Delay between requests (seconds)
         self.batch_size = 5  # Process questions in batches
         self.request_count = 0  # Track API requests
@@ -46,10 +45,8 @@ class AIGenerator:
             # Track request
             self.request_count += 1
             
-            response = self.client.models.generate_content(
-                model=self.model,
-                contents=prompt
-            )
+            model = genai.GenerativeModel(self.model)
+            response = model.generate_content(prompt)
             
             return response.text or "Unable to generate answer for this question."
             
@@ -60,10 +57,8 @@ class AIGenerator:
                 time.sleep(5)
                 # Retry once
                 try:
-                    response = self.client.models.generate_content(
-                        model=self.model,
-                        contents=prompt
-                    )
+                    model = genai.GenerativeModel(self.model)
+                    response = model.generate_content(prompt)
                     return response.text or "Unable to generate answer for this question."
                 except Exception as retry_e:
                     return f"API limit exceeded. Please try again later. Error: {str(retry_e)}"
@@ -108,10 +103,8 @@ class AIGenerator:
                 # Track request
                 self.request_count += 1
                 
-                response = self.client.models.generate_content(
-                    model=self.model,
-                    contents=multi_prompt
-                )
+                model = genai.GenerativeModel(self.model)
+                response = model.generate_content(multi_prompt)
                 
                 response_text = response.text or "Unable to generate answers for these questions."
                 
@@ -153,6 +146,9 @@ class AIGenerator:
                 
                 # Return error responses for all questions in batch
                 return [{"question": q["question"], "answer": error_response, "question_number": q["question_number"]} for q in questions_batch]
+        
+        # Fallback return (should not reach here)
+        return [{"question": q["question"], "answer": "Unable to generate answer due to unexpected error.", "question_number": q["question_number"]} for q in questions_batch]
     
     def _construct_prompt(self, question: str, subject: str, mode: str, 
                          custom_prompt: str = "", reference_content: str = "") -> str:

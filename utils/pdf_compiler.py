@@ -469,20 +469,15 @@ class PDFCompiler:
         return elements
     
     def _format_code_line(self, line: str) -> str:
-        """Format individual code lines with basic syntax highlighting"""
+        """Format individual code lines - simplified to avoid parser errors"""
         
-        # Basic syntax highlighting for common keywords
-        keywords = ['function', 'def', 'class', 'if', 'else', 'for', 'while', 'return', 
-                   'import', 'from', 'const', 'let', 'var', 'public', 'private', 'static']
+        # Simple escaping for code content without complex formatting
+        line = line.replace('<', '&lt;').replace('>', '&gt;').replace('&', '&amp;')
         
-        for keyword in keywords:
-            pattern = r'\b' + re.escape(keyword) + r'\b'
-            line = re.sub(pattern, f'{keyword}', line)  # Keep simple for Preformatted
-        
-        return self._escape_and_enhance_html(line)
+        return line
     
     def _format_math_formula(self, formula_text: str) -> list:
-        """Format mathematical formulas with LaTeX-like rendering"""
+        """Format mathematical formulas - simplified to avoid parser errors"""
         
         elements = []
         
@@ -490,7 +485,7 @@ class PDFCompiler:
         formula_text = re.sub(r'\$+', '', formula_text)
         formula_text = formula_text.strip()
         
-        # Convert common LaTeX symbols to readable text
+        # Convert common LaTeX symbols to readable text - no complex HTML
         latex_replacements = {
             r'\\frac\{([^}]+)\}\{([^}]+)\}': r'(\1)/(\2)',
             r'\\sqrt\{([^}]+)\}': r'sqrt(\1)',
@@ -511,15 +506,18 @@ class PDFCompiler:
             r'\\geq': '≥',
             r'\\neq': '≠',
             r'\\infty': '∞',
-            r'\^([0-9]+)': r'^(\1)',  # Simplified for PDF
-            r'_([0-9]+)': r'_(\1)'   # Simplified for PDF
+            r'\^([0-9]+)': r'^(\1)',
+            r'_([0-9]+)': r'_(\1)'
         }
         
         for pattern, replacement in latex_replacements.items():
             formula_text = re.sub(pattern, replacement, formula_text)
         
+        # Safe escaping without complex font tags
+        formula_text = formula_text.replace('<', '&lt;').replace('>', '&gt;').replace('&', '&amp;')
+        
         elements.append(Spacer(1, 6))
-        elements.append(Paragraph(f"<i><font name='Courier'>{self._escape_and_enhance_html(formula_text)}</font></i>", self.math_style))
+        elements.append(Paragraph(f"<i>{formula_text}</i>", self.math_style))
         elements.append(Spacer(1, 6))
         
         return elements
@@ -538,18 +536,18 @@ class PDFCompiler:
         return Paragraph(f"• {formatted_text}", self.list_style)
     
     def _enhance_text_formatting(self, text: str) -> str:
-        """Enhance text with bold, italic, and inline code formatting"""
+        """Enhance text with bold, italic, and inline code formatting - simplified for PDF safety"""
         
-        # Handle inline code with backticks
-        text = re.sub(r'`([^`]+)`', r'<font name="Courier" color="darkblue">\1</font>', text)
+        # Handle inline code with backticks - use simple monospace without color
+        text = re.sub(r'`([^`]+)`', r'[\1]', text)
         
         # Handle bold text
         text = re.sub(r'\*\*([^*]+)\*\*', r'<b>\1</b>', text)
         text = re.sub(r'__([^_]+)__', r'<b>\1</b>', text)
         
-        # Handle italic text
-        text = re.sub(r'\*([^*]+)\*', r'<i>\1</i>', text)
-        text = re.sub(r'_([^_]+)_', r'<i>\1</i>', text)
+        # Handle italic text - be more careful with nested formatting
+        text = re.sub(r'(?<!\*)\*([^*]+)\*(?!\*)', r'<i>\1</i>', text)
+        text = re.sub(r'(?<!_)_([^_]+)_(?!_)', r'<i>\1</i>', text)
         
         return self._escape_and_enhance_html(text)
     
@@ -565,15 +563,33 @@ class PDFCompiler:
         return any(re.search(pattern, text, re.IGNORECASE) for pattern in math_indicators)
     
     def _escape_and_enhance_html(self, text: str) -> str:
-        """Escape HTML while preserving enhancement tags"""
+        """Escape HTML while preserving enhancement tags with proper formatting"""
         
-        # First escape basic HTML characters
-        text = html.escape(text, quote=False)
+        # Handle special characters that cause parsing issues
+        problematic_chars = {
+            '<': '&lt;',
+            '>': '&gt;',
+            '&': '&amp;',
+            '"': '&quot;',
+        }
         
-        # Then restore our enhancement tags
-        enhancement_tags = ['<b>', '</b>', '<i>', '</i>', '<font', '</font>', '<sup>', '</sup>', '<sub>', '</sub>']
-        for tag in enhancement_tags:
-            text = text.replace(html.escape(tag), tag)
+        # First escape problematic characters
+        for char, escape in problematic_chars.items():
+            text = text.replace(char, escape)
+        
+        # Then safely restore our specific formatting tags
+        safe_replacements = {
+            '&lt;b&gt;': '<b>',
+            '&lt;/b&gt;': '</b>',
+            '&lt;i&gt;': '<i>',
+            '&lt;/i&gt;': '</i>',
+        }
+        
+        for escaped, safe in safe_replacements.items():
+            text = text.replace(escaped, safe)
+        
+        # Remove any malformed font tags that cause parser errors
+        text = re.sub(r'&lt;font[^&]*&gt;([^&]*)&lt;/font&gt;', r'\1', text)
         
         return text
     

@@ -1,0 +1,78 @@
+Traceback (most recent call last):
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/reportlab/platypus/paraparser.py", line 3218, in parse
+    self.feed(text)
+  File "/nix/store/7d088dip86hlzri9sk0h78b63yfmx0a0-python3-3.11.13/lib/python3.11/html/parser.py", line 110, in feed
+    self.goahead(0)
+  File "/nix/store/7d088dip86hlzri9sk0h78b63yfmx0a0-python3-3.11.13/lib/python3.11/html/parser.py", line 170, in goahead
+    k = self.parse_starttag(i)
+        ^^^^^^^^^^^^^^^^^^^^^^
+  File "/nix/store/7d088dip86hlzri9sk0h78b63yfmx0a0-python3-3.11.13/lib/python3.11/html/parser.py", line 337, in parse_starttag
+    self.handle_starttag(tag, attrs)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/reportlab/platypus/paraparser.py", line 3241, in handle_starttag
+    start(attrs or {})
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/reportlab/platypus/paraparser.py", line 2822, in start_font
+    A = self.getAttributes(attr,_spanAttrMap)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/reportlab/platypus/paraparser.py", line 3081, in getAttributes
+    self._syntax_error('invalid attribute name %s attrMap=%r'% (k,list(sorted(attrMap.keys()))))
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/reportlab/platypus/paraparser.py", line 2780, in _syntax_error
+    raise ValueError('paraparser: syntax error: %s' % message)
+ValueError: paraparser: syntax error: invalid attribute name &gt;<i attrMap=['backColor', 'backcolor', 'bgcolor', 'color', 'face', 'fg', 'fontName', 'fontSize', 'fontname', 'fontsize', 'name', 'size', 'style', 'textColor', 'textcolor']
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/runner/workspace/utils/pdf_compiler.py", line 213, in compile_answers_pdf
+    story.extend(self._create_answers_section(answers))
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/utils/pdf_compiler.py", line 338, in _create_answers_section
+    formatted_answer = self._format_answer_text(answer_data['answer'])
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/utils/pdf_compiler.py", line 382, in _format_answer_text
+    paragraphs.append(self._format_list_item(para))
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/utils/pdf_compiler.py", line 538, in _format_list_item
+    return Paragraph(f"• {formatted_text}", self.list_style)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/reportlab/platypus/paragraph.py", line 1859, in __init__
+    self._setup(text, style, bulletText or getattr(style,'bulletText',None), frags, cleanBlockQuotedText)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/reportlab/platypus/paragraph.py", line 1880, in _setup
+    style, frags, bulletTextFrags = _parser.parse(text,style)
+                                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/reportlab/platypus/paraparser.py", line 3220, in parse
+    annotateException('\nparagraph text %s caused exception' % ascii(text))
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/reportlab/lib/utils.py", line 1176, in annotateException
+    rl_reraise(t,t(sep.join((_ for _ in (msg,str(v),postMsg) if _))),b)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/reportlab/lib/utils.py", line 138, in rl_reraise
+    raise v.with_traceback(b)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/reportlab/platypus/paraparser.py", line 3218, in parse
+    self.feed(text)
+  File "/nix/store/7d088dip86hlzri9sk0h78b63yfmx0a0-python3-3.11.13/lib/python3.11/html/parser.py", line 110, in feed
+    self.goahead(0)
+  File "/nix/store/7d088dip86hlzri9sk0h78b63yfmx0a0-python3-3.11.13/lib/python3.11/html/parser.py", line 170, in goahead
+    k = self.parse_starttag(i)
+        ^^^^^^^^^^^^^^^^^^^^^^
+  File "/nix/store/7d088dip86hlzri9sk0h78b63yfmx0a0-python3-3.11.13/lib/python3.11/html/parser.py", line 337, in parse_starttag
+    self.handle_starttag(tag, attrs)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/reportlab/platypus/paraparser.py", line 3241, in handle_starttag
+    start(attrs or {})
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/reportlab/platypus/paraparser.py", line 2822, in start_font
+    A = self.getAttributes(attr,_spanAttrMap)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/reportlab/platypus/paraparser.py", line 3081, in getAttributes
+    self._syntax_error('invalid attribute name %s attrMap=%r'% (k,list(sorted(attrMap.keys()))))
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/reportlab/platypus/paraparser.py", line 2780, in _syntax_error
+    raise ValueError('paraparser: syntax error: %s' % message)
+ValueError: 
+paragraph text '<para>\u2022 <b>Structural Directives:</b> <i> <b>Definition:</b> These directives change the DOM layout by adding, removing, or manipulating elements and their sub-trees. They directly affect the structure of the DOM. </i> <b>Key Characteristic:</b> Structural directives are always prefixed with an asterisk (<font name="Courier" color="darkblue"&gt;<i></font>) in the template, which is </i>syntactic sugar<i> for a more verbose <font name="Courier" color="darkblue"&gt;&lt;ng-template&gt;</font> element. This <font name="Courier" color="darkblue"&gt;</i></font> prefix tells Angular to create a host element and then add or remove it from the DOM. <i> <b>Examples:</b> </i> <font name="Courier" color="darkblue"&gt;<i>ngIf</font>: Conditionally adds or removes an element from the DOM. <b>Syntax:</b> <font name="Courier" color="darkblue"&gt;&lt;div </i>ngIf="isLoggedIn"&gt;Welcome User!&lt;/div&gt;</font> <b>Effect:</b> The <font name="Courier" color="darkblue"&gt;div</font> element is only rendered in the DOM if <font name="Courier" color="darkblue"&gt;isLoggedIn</font> is <font name="Courier" color="darkblue"&gt;true</font>; otherwise, it\'s completely removed. <i> <font name="Courier" color="darkblue"&gt;</i>ngFor</font>: Repeats a template for each item in a collection. <b>Syntax:</b> ``<font name="Courier" color="darkblue"&gt;html &lt;ul&gt; &lt;li <i>ngFor="let item of items; let i = index"&gt; {{ i }}: {{ item }} &lt;/li&gt; &lt;/ul&gt; </font>`<font name="Courier" color="darkblue"&gt; <b>Effect:</b> For each element in the </font>items<font name="Courier" color="darkblue"&gt; array, an </font>&lt;li&gt;<font name="Courier" color="darkblue"&gt; element is created and inserted into the DOM. </i> </font>*ngSwitchCase`: Conditionally displays elements based on a switch condition.</para>' caused exception paraparser: syntax error: invalid attribute name &gt;<i attrMap=['backColor', 'backcolor', 'bgcolor', 'color', 'face', 'fg', 'fontName', 'fontSize', 'fontname', 'fontsize', 'name', 'size', 'style', 'textColor', 'textcolor']
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/runner/workspace/app.py", line 197, in <module>
+    pdf_path = pdf_compiler.compile_answers_pdf(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/utils/pdf_compiler.py", line 221, in compile_answers_pdf
+    raise Exception(f"Error compiling PDF: {str(e)}")
+Exception: Error compiling PDF: 
+paragraph text '<para>\u2022 <b>Structural Directives:</b> <i> <b>Definition:</b> These directives change the DOM layout by adding, removing, or manipulating elements and their sub-trees. They directly affect the structure of the DOM. </i> <b>Key Characteristic:</b> Structural directives are always prefixed with an asterisk (<font name="Courier" color="darkblue"&gt;<i></font>) in the template, which is </i>syntactic sugar<i> for a more verbose <font name="Courier" color="darkblue"&gt;&lt;ng-template&gt;</font> element. This <font name="Courier" color="darkblue"&gt;</i></font> prefix tells Angular to create a host element and then add or remove it from the DOM. <i> <b>Examples:</b> </i> <font name="Courier" color="darkblue"&gt;<i>ngIf</font>: Conditionally adds or removes an element from the DOM. <b>Syntax:</b> <font name="Courier" color="darkblue"&gt;&lt;div </i>ngIf="isLoggedIn"&gt;Welcome User!&lt;/div&gt;</font> <b>Effect:</b> The <font name="Courier" color="darkblue"&gt;div</font> element is only rendered in the DOM if <font name="Courier" color="darkblue"&gt;isLoggedIn</font> is <font name="Courier" color="darkblue"&gt;true</font>; otherwise, it\'s completely removed. <i> <font name="Courier" color="darkblue"&gt;</i>ngFor</font>: Repeats a template for each item in a collection. <b>Syntax:</b> ``<font name="Courier" color="darkblue"&gt;html &lt;ul&gt; &lt;li <i>ngFor="let item of items; let i = index"&gt; {{ i }}: {{ item }} &lt;/li&gt; &lt;/ul&gt; </font>`<font name="Courier" color="darkblue"&gt; <b>Effect:</b> For each element in the </font>items<font name="Courier" color="darkblue"&gt; array, an </font>&lt;li&gt;<font name="Courier" color="darkblue"&gt; element is created and inserted into the DOM. </i> </font>*ngSwitchCase`: Conditionally displays elements based on a switch condition.</para>' caused exception paraparser: syntax error: invalid attribute name &gt;<i attrMap=['backColor', 'backcolor', 'bgcolor', 'color', 'face', 'fg', 'fontName', 'fontSize', 'fontname', 'fontsize', 'name', 'size', 'style', 'textColor', 'textcolor']

@@ -76,7 +76,19 @@ class AIGenerator:
         if self.request_count >= self.max_requests_per_session:
             return [{"question": q["question"], "answer": f"Session request limit reached ({self.max_requests_per_session}). Please restart the app to continue.", "question_number": q["question_number"]} for q in questions_batch]
         
-        # Construct multi-question prompt
+        # For single question batches, use the simpler single-question approach
+        if len(questions_batch) == 1:
+            question_data = questions_batch[0]
+            answer = self.generate_answer(
+                question=question_data["question"],
+                subject=subject,
+                mode=mode,
+                custom_prompt=custom_prompt,
+                reference_content=reference_content
+            )
+            return [{"question": question_data["question"], "answer": answer, "question_number": question_data["question_number"]}]
+        
+        # Construct multi-question prompt for larger batches
         multi_prompt = self._construct_multi_question_prompt(
             questions_batch=questions_batch,
             subject=subject,
@@ -116,9 +128,11 @@ class AIGenerator:
             except Exception as e:
                 error_msg = str(e).lower()
                 
-                # Debug logging for Streamlit
+                # Debug logging for Streamlit - more detailed
                 import streamlit as st
                 st.write(f"API Error Debug: {str(e)}")
+                st.write(f"Error type: {type(e).__name__}")
+                st.write(f"Questions batch size: {len(questions_batch)}")
                 
                 # Check for specific error types
                 if "500" in error_msg or "internal" in error_msg:

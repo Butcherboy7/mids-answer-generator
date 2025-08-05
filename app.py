@@ -118,8 +118,8 @@ if st.button("🚀 Generate Answers", type="primary", disabled=not question_bank
                 st.info("🤖 Generating comprehensive AI answers...")
                 answers = []
                 
-                # Process in batches for efficiency
-                batch_size = 3
+                # Process in smaller batches to avoid API issues
+                batch_size = 1  # Single questions for better reliability
                 total_batches = (len(questions) + batch_size - 1) // batch_size
                 
                 progress_bar = st.progress(0)

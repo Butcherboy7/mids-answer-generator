@@ -158,17 +158,22 @@ class AIGenerator:
                          custom_prompt: str = "", reference_content: str = "") -> str:
         """Construct a sophisticated prompt for the AI model"""
         
-        # Base instruction for 8-mark college-level answers
+        # Base instruction for 8-mark college-level answers with enhanced formatting
         base_instruction = f"""
 You are an expert academic assistant specializing in {subject}. 
 Generate a comprehensive answer for the following college-level question worth 8 marks.
 
-The answer should be:
-- Well-structured with clear headings and subheadings
+ENHANCED FORMATTING REQUIREMENTS:
+- Well-structured with clear headings using **bold** or # markdown
 - Include key terms in **bold** and important concepts in *italics*
-- Use bullet points and numbered lists where appropriate
-- Maintain academic rigor and accuracy
+- For code: Use ```language blocks for multi-line code and `backticks` for inline code
+- For math: Use LaTeX notation like $x^2$ for inline math and $$equation$$ for display math
+- Use proper special characters: α β γ δ π θ λ μ σ φ ω ∞ ≤ ≥ ≠ ± ° © ® ™
+- Format lists with bullet points (•) and numbered lists appropriately
+- Use proper citations and references with formal academic style
+- Maintain academic rigor and accuracy throughout
 - Be approximately 400-600 words for an 8-mark question
+- Ensure all content renders properly in PDF format with special characters
 """
         
         # Mode-specific instructions
@@ -241,12 +246,13 @@ Please provide a comprehensive, well-formatted answer following all the above gu
         guidelines = {
             "Mathematics": """
 SUBJECT-SPECIFIC GUIDELINES FOR MATHEMATICS:
-- Include step-by-step mathematical derivations
-- Show all calculation steps clearly
-- Use proper mathematical notation and symbols
-- Include diagrams or geometric explanations where relevant
-- Provide alternative solution methods when applicable
-- Verify answers with examples or proofs
+- Include step-by-step mathematical derivations with LaTeX: $\\frac{dy}{dx}$, $\\int_a^b f(x)dx$
+- Show calculation steps with proper mathematical notation: α, β, π, ∞, ≤, ≥, ≠, ±
+- Use display math for complex formulas: $$\\sum_{i=1}^{n} x_i = \\frac{n(n+1)}{2}$$
+- Include geometric explanations with coordinate references like (x₁, y₁)
+- Provide alternative solution methods with clear step numbering
+- Verify answers with worked examples and mathematical proofs
+- Use proper mathematical symbols and Greek letters throughout
 """,
             "Physics": """
 SUBJECT-SPECIFIC GUIDELINES FOR PHYSICS:
@@ -259,12 +265,13 @@ SUBJECT-SPECIFIC GUIDELINES FOR PHYSICS:
 """,
             "Computer Science": """
 SUBJECT-SPECIFIC GUIDELINES FOR COMPUTER SCIENCE:
-- Include code examples and algorithms where relevant
-- Explain time and space complexity
-- Provide practical implementation details
-- Include system design considerations
-- Explain both theoretical and practical aspects
-- Use proper technical terminology
+- Include code examples with proper syntax highlighting using ```javascript, ```python, ```java, etc.
+- Explain time and space complexity with mathematical notation like O(n²), Ω(log n)
+- Provide practical implementation details with inline code `functions()` and `variables`
+- Include system design considerations with architectural diagrams in text
+- Use technical terminology like APIs, algorithms, data structures, OOP, etc.
+- Show code snippets for algorithms, functions, and key programming concepts
+- Format technical specifications and requirements clearly
 """,
             "History": """
 SUBJECT-SPECIFIC GUIDELINES FOR HISTORY:
@@ -286,12 +293,13 @@ SUBJECT-SPECIFIC GUIDELINES FOR LITERATURE:
 """,
             "Chemistry": """
 SUBJECT-SPECIFIC GUIDELINES FOR CHEMISTRY:
-- Include chemical equations and reactions
-- Explain molecular structures and bonding
-- Provide step-by-step reaction mechanisms
-- Include experimental procedures and observations
-- Discuss practical applications and real-world relevance
-- Use proper chemical nomenclature
+- Include chemical equations: H₂SO₄ + 2NaOH → Na₂SO₄ + 2H₂O
+- Use proper chemical notation with subscripts and superscripts: CO₂, H⁺, Fe³⁺
+- Explain molecular structures with bond angles: 109.5°, 120°, 180°
+- Include reaction mechanisms with arrow notation: → ⇌ ⟶
+- Use proper chemical symbols and formulas throughout
+- Include temperature and pressure conditions: 25°C, 1 atm
+- Format chemical nomenclature with proper IUPAC naming
 """,
             "Biology": """
 SUBJECT-SPECIFIC GUIDELINES FOR BIOLOGY:

@@ -1,13 +1,14 @@
 import os
+import re
+import html
+from datetime import datetime
+import tempfile
 from reportlab.lib.pagesizes import letter, A4
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak, Table, TableStyle
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak, Table, TableStyle, Preformatted
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_JUSTIFY
-from datetime import datetime
-import tempfile
-import re
 
 class PDFCompiler:
     """Compiles generated answers into a professional PDF document"""
@@ -136,6 +137,50 @@ class PDFCompiler:
             spaceBefore=10,
             textColor=colors.black,
             fontName='Helvetica-Bold'
+        )
+        
+        # Code block style with monospace font and background
+        self.code_style = ParagraphStyle(
+            'CodeStyle',
+            parent=self.styles['Code'],
+            fontSize=9,
+            spaceAfter=10,
+            spaceBefore=10,
+            leftIndent=20,
+            rightIndent=20,
+            fontName='Courier',
+            textColor=colors.darkblue,
+            backColor=colors.lightgrey,
+            borderColor=colors.grey,
+            borderWidth=0.5,
+            borderPadding=8
+        )
+        
+        # Mathematical formula style
+        self.math_style = ParagraphStyle(
+            'MathStyle',
+            parent=self.styles['Normal'],
+            fontSize=11,
+            spaceAfter=8,
+            spaceBefore=8,
+            alignment=TA_CENTER,
+            fontName='Courier',
+            textColor=colors.darkgreen,
+            leftIndent=30,
+            rightIndent=30
+        )
+        
+        # List item style
+        self.list_style = ParagraphStyle(
+            'ListStyle',
+            parent=self.styles['Normal'],
+            fontSize=11,
+            spaceAfter=4,
+            spaceBefore=2,
+            leftIndent=25,
+            bulletIndent=10,
+            textColor=colors.black,
+            fontName='Helvetica'
         )
     
     def compile_answers_pdf(self, answers: list, subject: str, mode: str, custom_prompt: str = "") -> str:
@@ -303,9 +348,12 @@ class PDFCompiler:
         return story
     
     def _format_answer_text(self, answer_text: str) -> list:
-        """Format answer text with professional styling and structure"""
+        """Format answer text with advanced styling for code, math, and special characters"""
         
         paragraphs = []
+        
+        # Pre-process text for special characters and better formatting
+        answer_text = self._preprocess_text(answer_text)
         
         # Split text into paragraphs
         text_paragraphs = answer_text.split('\n\n')
@@ -315,30 +363,35 @@ class PDFCompiler:
             if not para:
                 continue
             
-            # Clean and format the text
-            formatted_text = self._clean_text_for_pdf(para)
-            
-            # Detect different content types and apply appropriate styling
+            # Handle different content types with enhanced formatting
             if self._is_code_block(para):
-                # Code block - use monospace font with background
-                code_text = para.replace('```', '').strip()
-                paragraphs.append(Paragraph(code_text, self.code_style))
-                
-            elif self._is_section_heading(para):
-                # Section heading within answer
-                clean_text = para.replace('#', '').replace('**', '').strip()
-                paragraphs.append(Paragraph(f"<b>{clean_text}</b>", self.section_heading_style))
-                
-            elif self._is_list_item(para):
-                # List item
-                paragraphs.append(Paragraph(formatted_text, self.list_style))
-                
-            else:
-                # Regular paragraph
-                paragraphs.append(Paragraph(formatted_text, self.answer_style))
+                # Enhanced code blocks with syntax highlighting
+                paragraphs.extend(self._format_code_block(para))
             
-            # Add small spacing between paragraphs
-            paragraphs.append(Spacer(1, 4))
+            elif self._is_math_formula(para):
+                # Mathematical formulas with LaTeX-like rendering
+                paragraphs.extend(self._format_math_formula(para))
+            
+            elif self._is_section_heading(para):
+                # Section headings with improved styling
+                clean_heading = para.replace('**', '').replace('#', '').strip()
+                paragraphs.append(Paragraph(f"<b>{self._escape_and_enhance_html(clean_heading)}</b>", self.section_heading_style))
+            
+            elif self._is_list_item(para):
+                # Enhanced list items with proper bullets
+                paragraphs.append(self._format_list_item(para))
+            
+            else:
+                # Regular paragraphs with enhanced text processing
+                lines = para.split('\n')
+                for line in lines:
+                    line = line.strip()
+                    if line:
+                        formatted_line = self._enhance_text_formatting(line)
+                        paragraphs.append(Paragraph(formatted_line, self.answer_style))
+            
+            # Add appropriate spacing between paragraphs
+            paragraphs.append(Spacer(1, 6))
         
         return paragraphs
     
@@ -361,6 +414,168 @@ class PDFCompiler:
                    text.startswith('-') or 
                    text.startswith('*') or
                    re.match(r'^\d+\.', text))
+    
+    def _preprocess_text(self, text: str) -> str:
+        """Preprocess text to handle special characters and encoding issues"""
+        
+        # Handle common special characters and symbols
+        replacements = {
+            '"': '"', '"': '"',  # Smart quotes
+            ''': "'", ''': "'",  # Smart apostrophes
+            '—': '-', '–': '-',  # Em and en dashes
+            '…': '...',          # Ellipsis
+            '©': '(c)',          # Copyright
+            '®': '(R)',          # Registered trademark
+            '™': '(TM)',         # Trademark
+            '°': ' degrees',     # Degree symbol
+            '±': '+/-',          # Plus-minus
+            '≤': '<=',           # Less than or equal
+            '≥': '>=',           # Greater than or equal
+            '≠': '!=',           # Not equal
+            '∞': 'infinity',     # Infinity
+            'α': 'alpha', 'β': 'beta', 'γ': 'gamma', 'δ': 'delta',
+            'π': 'pi', 'θ': 'theta', 'λ': 'lambda', 'μ': 'mu',
+            'σ': 'sigma', 'φ': 'phi', 'ω': 'omega'
+        }
+        
+        for old, new in replacements.items():
+            text = text.replace(old, new)
+        
+        return text
+    
+    def _format_code_block(self, code_text: str) -> list:
+        """Format code blocks with enhanced styling and syntax awareness"""
+        
+        elements = []
+        
+        # Remove code block markers
+        code_text = re.sub(r'^```[\w]*\s*', '', code_text)
+        code_text = re.sub(r'```\s*$', '', code_text)
+        
+        # Split into lines for better formatting
+        lines = code_text.split('\n')
+        
+        # Add spacing before code block
+        elements.append(Spacer(1, 8))
+        
+        for line in lines:
+            if line.strip():
+                # Enhanced code formatting with basic syntax highlighting
+                formatted_line = self._format_code_line(line)
+                elements.append(Preformatted(formatted_line, self.code_style))
+        
+        # Add spacing after code block
+        elements.append(Spacer(1, 8))
+        return elements
+    
+    def _format_code_line(self, line: str) -> str:
+        """Format individual code lines with basic syntax highlighting"""
+        
+        # Basic syntax highlighting for common keywords
+        keywords = ['function', 'def', 'class', 'if', 'else', 'for', 'while', 'return', 
+                   'import', 'from', 'const', 'let', 'var', 'public', 'private', 'static']
+        
+        for keyword in keywords:
+            pattern = r'\b' + re.escape(keyword) + r'\b'
+            line = re.sub(pattern, f'{keyword}', line)  # Keep simple for Preformatted
+        
+        return self._escape_and_enhance_html(line)
+    
+    def _format_math_formula(self, formula_text: str) -> list:
+        """Format mathematical formulas with LaTeX-like rendering"""
+        
+        elements = []
+        
+        # Clean up LaTeX markers
+        formula_text = re.sub(r'\$+', '', formula_text)
+        formula_text = formula_text.strip()
+        
+        # Convert common LaTeX symbols to readable text
+        latex_replacements = {
+            r'\\frac\{([^}]+)\}\{([^}]+)\}': r'(\1)/(\2)',
+            r'\\sqrt\{([^}]+)\}': r'sqrt(\1)',
+            r'\\sum': 'Σ',
+            r'\\int': '∫',
+            r'\\alpha': 'α',
+            r'\\beta': 'β',
+            r'\\gamma': 'γ',
+            r'\\delta': 'δ',
+            r'\\pi': 'π',
+            r'\\theta': 'θ',
+            r'\\lambda': 'λ',
+            r'\\mu': 'μ',
+            r'\\sigma': 'σ',
+            r'\\phi': 'φ',
+            r'\\omega': 'ω',
+            r'\\leq': '≤',
+            r'\\geq': '≥',
+            r'\\neq': '≠',
+            r'\\infty': '∞',
+            r'\^([0-9]+)': r'^(\1)',  # Simplified for PDF
+            r'_([0-9]+)': r'_(\1)'   # Simplified for PDF
+        }
+        
+        for pattern, replacement in latex_replacements.items():
+            formula_text = re.sub(pattern, replacement, formula_text)
+        
+        elements.append(Spacer(1, 6))
+        elements.append(Paragraph(f"<i><font name='Courier'>{self._escape_and_enhance_html(formula_text)}</font></i>", self.math_style))
+        elements.append(Spacer(1, 6))
+        
+        return elements
+    
+    def _format_list_item(self, item_text: str) -> Paragraph:
+        """Format list items with proper bullets and indentation"""
+        
+        # Clean up the item text
+        clean_item = item_text.lstrip('•-*').strip()
+        if re.match(r'^\d+\.', item_text):
+            clean_item = re.sub(r'^\d+\.\s*', '', item_text)
+        
+        # Enhanced formatting for list items
+        formatted_text = self._enhance_text_formatting(clean_item)
+        
+        return Paragraph(f"• {formatted_text}", self.list_style)
+    
+    def _enhance_text_formatting(self, text: str) -> str:
+        """Enhance text with bold, italic, and inline code formatting"""
+        
+        # Handle inline code with backticks
+        text = re.sub(r'`([^`]+)`', r'<font name="Courier" color="darkblue">\1</font>', text)
+        
+        # Handle bold text
+        text = re.sub(r'\*\*([^*]+)\*\*', r'<b>\1</b>', text)
+        text = re.sub(r'__([^_]+)__', r'<b>\1</b>', text)
+        
+        # Handle italic text
+        text = re.sub(r'\*([^*]+)\*', r'<i>\1</i>', text)
+        text = re.sub(r'_([^_]+)_', r'<i>\1</i>', text)
+        
+        return self._escape_and_enhance_html(text)
+    
+    def _is_math_formula(self, text: str) -> bool:
+        """Check if text contains mathematical formulas"""
+        math_indicators = [
+            r'\$', r'\\frac', r'\\sqrt', r'\\sum', r'\\int',
+            r'\\alpha', r'\\beta', r'\\gamma', r'\\delta', r'\\pi',
+            r'\\theta', r'\\lambda', r'\\mu', r'\\sigma', r'\\phi', r'\\omega',
+            r'\^[0-9]', r'_[0-9]', 'equation:', 'formula:'
+        ]
+        
+        return any(re.search(pattern, text, re.IGNORECASE) for pattern in math_indicators)
+    
+    def _escape_and_enhance_html(self, text: str) -> str:
+        """Escape HTML while preserving enhancement tags"""
+        
+        # First escape basic HTML characters
+        text = html.escape(text, quote=False)
+        
+        # Then restore our enhancement tags
+        enhancement_tags = ['<b>', '</b>', '<i>', '</i>', '<font', '</font>', '<sup>', '</sup>', '<sub>', '</sub>']
+        for tag in enhancement_tags:
+            text = text.replace(html.escape(tag), tag)
+        
+        return text
     
     def _clean_text_for_pdf(self, text: str) -> str:
         """Clean and format text for PDF generation with professional styling"""

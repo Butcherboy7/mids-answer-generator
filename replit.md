@@ -7,7 +7,7 @@ The College Answer Generator is a comprehensive, GitHub-ready Streamlit-based we
 - ✅ **Smart Content Detection**: Added intelligent formatting for headings, lists, and code blocks
 - ✅ **Markdown Cleanup**: Fixed hashtag rendering issues by properly removing markdown symbols
 - ✅ **Subject-Aware Formatting**: Code blocks with colored backgrounds for programming subjects only
-- ✅ **Enhanced API Reliability**: Improved retry mechanism with progressive delays for better error handling
+- ✅ **Enhanced API Reliability**: Improved retry mechanism with progressive delays and 2-question batches for better rate limiting
 - ✅ **Clean Text Processing**: Removed all problematic HTML/markdown that caused parser conflicts
 - ✅ **GitHub-Ready Package**: Complete with README, CONTRIBUTING guidelines, and deployment docs
 - ✅ **Docker Support**: Full containerization with docker-compose configuration

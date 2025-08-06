@@ -703,20 +703,67 @@ class PDFCompiler:
         return text.strip()
     
     def _is_code_section(self, text: str) -> bool:
-        """Detect code sections for programming subjects"""
+        """Detect ACTUAL code sections - must be very strict to avoid false positives"""
+        
+        # Only process if it's a programming subject
         if not (hasattr(self, 'current_subject') and 
                 any(prog in self.current_subject.lower() for prog in ['computer', 'programming', 'software'])):
             return False
         
-        # Look for code patterns
-        code_indicators = [
-            r'def\s+\w+\(', r'function\s+\w+\(', r'class\s+\w+', 
-            r'import\s+\w+', r'#include', r'<\w+>', r'{\s*\w+',
-            r'console\.log', r'print\(', r'SELECT\s+', r'if\s*\(',
-            r'for\s*\(', r'while\s*\('
+        # Must start with explicit code markers or have multiple code indicators
+        explicit_code_markers = [
+            text.strip().startswith('```'),  # Markdown code blocks
+            text.strip().startswith('def '),  # Python function
+            text.strip().startswith('function '),  # JavaScript function
+            text.strip().startswith('class '),  # Class definition
+            text.strip().startswith('import '),  # Import statement
+            text.strip().startswith('#include'),  # C/C++ include
+            text.strip().startswith('SELECT '),  # SQL query
         ]
         
-        return any(re.search(pattern, text, re.IGNORECASE) for pattern in code_indicators)
+        # If any explicit marker, it's definitely code
+        if any(explicit_code_markers):
+            return True
+        
+        # For other text, be VERY strict - need multiple strong indicators
+        strong_code_patterns = [
+            r'def\s+\w+\s*\(',         # Function definition with parentheses
+            r'function\s+\w+\s*\(',    # JavaScript function
+            r'class\s+\w+\s*[\{:]',    # Class with proper syntax
+            r'console\.log\s*\(',      # Console.log call
+            r'print\s*\(',             # Print statement
+            r'if\s*\(.+\)\s*[\{:]',    # If statement with proper syntax
+            r'for\s*\(.+\)\s*[\{:]',   # For loop with syntax
+            r'while\s*\(.+\)\s*[\{:]', # While loop with syntax
+            r'return\s+\w+',           # Return statement
+            r'{\s*\w+\s*:\s*\w+',      # Object/dictionary syntax
+        ]
+        
+        # Count strong indicators
+        indicator_count = sum(1 for pattern in strong_code_patterns 
+                            if re.search(pattern, text, re.IGNORECASE))
+        
+        # Need at least 2 strong indicators AND reasonable code length
+        return (indicator_count >= 2 and len(text.split('\n')) >= 2 and 
+                not self._looks_like_explanatory_text(text))
+    
+    def _looks_like_explanatory_text(self, text: str) -> bool:
+        """Check if text looks like explanatory prose rather than code"""
+        
+        # Common explanatory phrases that indicate it's NOT code
+        explanatory_phrases = [
+            'in react', 'components are', 'fundamental building', 
+            'they encapsulate', 'promoting reusability', 'can be either',
+            'is a simple', 'function that accepts', 'returns a jsx',
+            'this is a', 'way to create', 'elements'
+        ]
+        
+        text_lower = text.lower()
+        phrase_count = sum(1 for phrase in explanatory_phrases 
+                          if phrase in text_lower)
+        
+        # If it has multiple explanatory phrases, it's probably not code
+        return phrase_count >= 2
     
     def _is_heading_section(self, text: str) -> bool:
         """Detect headings and important section titles"""

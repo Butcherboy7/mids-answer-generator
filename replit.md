@@ -8,6 +8,7 @@ The College Answer Generator is a comprehensive, GitHub-ready Streamlit-based we
 - ✅ **Professional Color Scheme**: Replaced bright colors with sophisticated blue-gray palette for better readability
 - ✅ **Typography Improvements**: Enhanced spacing, justified text alignment, and professional font sizing
 - ✅ **Code Block Optimization**: Better padding, thinner borders, and improved contrast for readability
+- ✅ **Fixed Code Detection**: Resolved issue where explanatory text was incorrectly formatted as code blocks
 - ✅ **PDF Formatting Overhaul**: Completely eliminated HTML tag parsing issues with ultra-safe text processing
 - ✅ **Smart Content Detection**: Added intelligent formatting for headings, lists, and code blocks
 - ✅ **Subject-Aware Formatting**: Code blocks with appealing colors for programming subjects

@@ -1,8 +1,12 @@
 import os
 import time
-import asyncio
 from typing import List, Dict
-import google.generativeai as genai
+try:
+    import google.generativeai as genai
+except ImportError:
+    import streamlit as st
+    st.error("Google GenerativeAI library not found. Please install: pip install google-generativeai")
+    st.stop()
 import streamlit as st
 
 class AIGenerator:
@@ -129,7 +133,6 @@ class AIGenerator:
                 error_msg = str(e).lower()
                 
                 # Debug logging for Streamlit - more detailed
-                import streamlit as st
                 st.write(f"API Error Debug: {str(e)}")
                 st.write(f"Error type: {type(e).__name__}")
                 st.write(f"Questions batch size: {len(questions_batch)}")

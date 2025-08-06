@@ -84,7 +84,11 @@ if st.button("🚀 Generate Answers", type="primary", disabled=not question_bank
                 extracted_text = pdf_processor.extract_text_from_document(question_bank)
                 
                 if not extracted_text or len(extracted_text.strip()) < 50:
-                    st.error("❌ Could not extract readable text from the PDF. Please ensure your document contains text (not just images).")
+                    st.error("❌ Could not extract readable text from the document. Please ensure your document contains text (not just images).")
+                    st.info("💡 **Troubleshooting Tips:**")
+                    st.info("- For scanned PDFs: Try using an image format (PNG/JPG) for better OCR results")
+                    st.info("- Check if the PDF is password protected")
+                    st.info("- Ensure the document has selectable text, not just images")
                     st.stop()
                 
                 # Step 2: Find questions
@@ -93,8 +97,15 @@ if st.button("🚀 Generate Answers", type="primary", disabled=not question_bank
                 
                 if not questions:
                     st.error("❌ No questions found in the document.")
+                    st.info("💡 **Common question formats we recognize:**")
+                    st.info("- 1. Question text")
+                    st.info("- Q1) Question text") 
+                    st.info("- Question 1. Question text")
+                    st.info("- (1) Question text")
                     with st.expander("📝 View extracted text for debugging"):
                         st.text(extracted_text[:2000])
+                        if len(extracted_text) > 2000:
+                            st.text("... (text truncated)")
                     st.stop()
                 
                 st.success(f"✅ Found {len(questions)} questions!")

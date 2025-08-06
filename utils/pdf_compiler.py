@@ -150,8 +150,8 @@ class PDFCompiler:
             rightIndent=12,
             fontName='Courier-Bold',  # Bold for better contrast
             textColor=colors.black,   # Black text for better contrast
-            backColor=colors.Color(0.95, 0.95, 0.95),  # Light gray background
-            borderColor=colors.Color(0.7, 0.7, 0.7),   # Darker border
+            backColor=colors.lightgrey,  # Light gray background
+            borderColor=colors.grey,   # Darker border
             borderWidth=1,
             borderPadding=8,
             leading=12  # More spacing between lines
@@ -479,13 +479,13 @@ class PDFCompiler:
             code_table = Table(code_lines, colWidths=[6*inch])
             # Choose colors based on subject
             if hasattr(self, 'current_subject') and 'computer' in self.current_subject.lower():
-                bg_color = colors.Color(0.95, 0.98, 1.0)  # Light blue for CS
-                text_color = colors.Color(0.0, 0.2, 0.8)  # Dark blue text
-                border_color = colors.Color(0.5, 0.7, 1.0)  # Blue border
+                bg_color = colors.lightblue  # Light blue for CS
+                text_color = colors.darkblue  # Dark blue text
+                border_color = colors.blue  # Blue border
             else:
-                bg_color = colors.Color(0.95, 0.95, 0.95)  # Light gray
+                bg_color = colors.lightgrey  # Light gray
                 text_color = colors.black
-                border_color = colors.Color(0.7, 0.7, 0.7)  # Gray border
+                border_color = colors.grey  # Gray border
                 
             code_table.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (-1, -1), bg_color),
@@ -734,13 +734,13 @@ class PDFCompiler:
             
             # Subject-aware coloring
             if 'computer' in self.current_subject.lower():
-                bg_color = colors.Color(0.95, 0.98, 1.0)  # Light blue
-                text_color = colors.Color(0.0, 0.2, 0.8)  # Dark blue
-                border_color = colors.Color(0.5, 0.7, 1.0)
+                bg_color = colors.lightblue  # Light blue
+                text_color = colors.darkblue  # Dark blue
+                border_color = colors.blue
             else:
-                bg_color = colors.Color(0.95, 0.95, 0.95)  # Light gray
+                bg_color = colors.lightgrey  # Light gray
                 text_color = colors.black
-                border_color = colors.gray
+                border_color = colors.grey
             
             code_table.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (-1, -1), bg_color),

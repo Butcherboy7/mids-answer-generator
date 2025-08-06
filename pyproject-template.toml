@@ -1,0 +1,69 @@
+[build-system]
+requires = ["setuptools>=45", "wheel", "setuptools-scm[toml]>=6.2"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "college-answer-generator"
+description = "AI-powered academic answer generator for college question banks"
+readme = "README.md"
+license = {file = "LICENSE"}
+authors = [
+    {name = "College Answer Generator Team"},
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Education",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Education",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+requires-python = ">=3.11"
+dependencies = [
+    "streamlit>=1.47.1",
+    "google-generativeai>=0.8.5", 
+    "pdfplumber>=0.11.7",
+    "pillow>=11.3.0",
+    "pytesseract>=0.3.13",
+    "python-docx>=1.2.0",
+    "reportlab>=4.4.3",
+    "python-dotenv>=1.0.0",
+]
+dynamic = ["version"]
+
+[project.urls]
+Homepage = "https://github.com/your-username/college-answer-generator"
+Repository = "https://github.com/your-username/college-answer-generator.git"
+Issues = "https://github.com/your-username/college-answer-generator/issues"
+Documentation = "https://github.com/your-username/college-answer-generator/blob/main/README.md"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "black>=23.0",
+    "flake8>=6.0",
+    "bandit>=1.7",
+    "pre-commit>=3.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["utils*"]
+
+[tool.setuptools_scm]
+fallback_version = "0.1.0"
+
+[tool.black]
+line-length = 88
+target-version = ['py311']
+include = '\.pyi?$'
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+addopts = "--cov=utils --cov-report=term-missing --cov-report=html"

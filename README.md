@@ -37,6 +37,22 @@ A comprehensive Streamlit-based Academic Answer Generator that automates the cre
 
 ### Installation
 
+#### Option 1: Quick Setup (Recommended)
+```bash
+git clone https://github.com/your-username/college-answer-generator.git
+cd college-answer-generator
+chmod +x setup.sh
+./setup.sh
+```
+
+Then edit `.env` file with your API key and run:
+```bash
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+streamlit run app.py
+```
+
+#### Option 2: Manual Setup
+
 1. **Clone the repository**
    ```bash
    git clone https://github.com/your-username/college-answer-generator.git
@@ -51,6 +67,10 @@ A comprehensive Streamlit-based Academic Answer Generator that automates the cre
 
 3. **Install dependencies**
    ```bash
+   # Rename the requirements file first
+   mv requirements-github.txt requirements.txt
+   
+   # Then install packages
    pip install -r requirements.txt
    ```
 
@@ -61,12 +81,23 @@ A comprehensive Streamlit-based Academic Answer Generator that automates the cre
    GEMINI_API_KEY=your_gemini_api_key_here
    ```
 
-5. **Run the application**
+5. **Install system dependencies** (for OCR support)
+   ```bash
+   # Ubuntu/Debian
+   sudo apt-get install tesseract-ocr
+   
+   # macOS
+   brew install tesseract
+   
+   # Windows: Download from https://github.com/UB-Mannheim/tesseract/wiki
+   ```
+
+6. **Run the application**
    ```bash
    streamlit run app.py
    ```
 
-6. **Open your browser**
+7. **Open your browser**
    
    Navigate to `http://localhost:8501` to start using the application.
 
@@ -83,7 +114,8 @@ college-answer-generator/
 ├── data/                     # Generated PDFs and history
 ├── .streamlit/              # Streamlit configuration
 │   └── config.toml
-├── requirements.txt          # Python dependencies
+├── requirements-github.txt   # Python dependencies for GitHub deployment
+├── setup.sh                 # Automated setup script
 ├── .env.example             # Environment variables template
 ├── .gitignore              # Git ignore rules
 └── README.md               # This file

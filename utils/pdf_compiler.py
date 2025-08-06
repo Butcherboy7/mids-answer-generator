@@ -23,7 +23,7 @@ class PDFCompiler:
     def _setup_custom_styles(self):
         """Setup clean, professional paragraph styles for the PDF"""
         
-        # Clean title style - black text, centered
+        # Clean title style with appealing color
         self.title_style = ParagraphStyle(
             'CustomTitle',
             parent=self.styles['Title'],
@@ -31,7 +31,7 @@ class PDFCompiler:
             spaceAfter=40,
             spaceBefore=20,
             alignment=TA_CENTER,
-            textColor=colors.black,
+            textColor=colors.Color(0.1, 0.2, 0.4),  # Professional dark blue
             fontName='Helvetica-Bold'
         )
         
@@ -46,31 +46,34 @@ class PDFCompiler:
             fontName='Helvetica'
         )
         
-        # Question style - bold, clean, well-spaced
+        # Question style - bold, clean, well-spaced with appealing color
         self.question_style = ParagraphStyle(
             'QuestionStyle',
             parent=self.styles['Normal'],
             fontSize=13,
             spaceAfter=15,
             spaceBefore=25,
-            textColor=colors.black,
+            textColor=colors.Color(0.2, 0.2, 0.4),  # Dark blue-gray for questions
             fontName='Helvetica-Bold',
             leftIndent=0,
-            rightIndent=0
+            rightIndent=0,
+            borderWidth=0,
+            borderPadding=8,
+            backColor=colors.Color(0.98, 0.98, 1.0)  # Very subtle background
         )
         
         # Main answer style - clean, readable with improved font
         self.answer_style = ParagraphStyle(
             'AnswerStyle',
             parent=self.styles['Normal'],
-            fontSize=12,  # Larger font for better readability
-            spaceAfter=10,
+            fontSize=11,  # Slightly smaller for better fitting
+            spaceAfter=12,
             spaceBefore=8,
-            alignment=TA_LEFT,  # Left alignment for better readability
-            leftIndent=15,
-            rightIndent=15,
-            leading=18,  # Better line spacing
-            textColor=colors.black,
+            alignment=TA_JUSTIFY,  # Justified for professional look
+            leftIndent=20,
+            rightIndent=20,
+            leading=16,  # Better line spacing
+            textColor=colors.Color(0.1, 0.1, 0.1),  # Very dark gray instead of pure black
             fontName='Helvetica'
         )
         
@@ -109,11 +112,14 @@ class PDFCompiler:
         self.section_heading_style = ParagraphStyle(
             'SectionHeading',
             parent=self.styles['Normal'],
-            fontSize=14,  # Larger for better hierarchy
+            fontSize=13,  # Better hierarchy
             spaceAfter=10,
             spaceBefore=15,
-            textColor=colors.black,
-            fontName='Helvetica-Bold'
+            textColor=colors.Color(0.2, 0.4, 0.6),  # Professional blue
+            fontName='Helvetica-Bold',
+            leftIndent=5,
+            borderWidth=0,
+            borderPadding=5
         )
         
         # Main heading style for titles and table of contents
@@ -476,29 +482,30 @@ class PDFCompiler:
         if code_lines:
             # Create table with background for code block
             from reportlab.platypus import Table, TableStyle
-            code_table = Table(code_lines, colWidths=[6*inch])
-            # Choose colors based on subject
+            code_table = Table(code_lines, colWidths=[5.5*inch])  # Slightly narrower for better fit
+            # Choose appealing colors based on subject with better contrast
             if hasattr(self, 'current_subject') and 'computer' in self.current_subject.lower():
-                bg_color = colors.lightblue  # Light blue for CS
-                text_color = colors.darkblue  # Dark blue text
-                border_color = colors.blue  # Blue border
+                bg_color = colors.Color(0.95, 0.97, 0.99)  # Very light blue-gray
+                text_color = colors.Color(0.2, 0.3, 0.5)   # Dark blue-gray
+                border_color = colors.Color(0.4, 0.5, 0.7)  # Medium blue
             else:
-                bg_color = colors.lightgrey  # Light gray
-                text_color = colors.black
-                border_color = colors.grey  # Gray border
+                bg_color = colors.Color(0.97, 0.97, 0.97)  # Very light gray
+                text_color = colors.Color(0.2, 0.2, 0.2)   # Dark gray
+                border_color = colors.Color(0.5, 0.5, 0.5)  # Medium gray
                 
             code_table.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (-1, -1), bg_color),
-                ('FONTNAME', (0, 0), (-1, -1), 'Courier-Bold'),
-                ('FONTSIZE', (0, 0), (-1, -1), 10),  # Slightly larger
+                ('FONTNAME', (0, 0), (-1, -1), 'Courier'),  # Regular weight for better readability
+                ('FONTSIZE', (0, 0), (-1, -1), 9),  # Optimal size for code
                 ('TEXTCOLOR', (0, 0), (-1, -1), text_color),
                 ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
                 ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                ('LEFTPADDING', (0, 0), (-1, -1), 12),
-                ('RIGHTPADDING', (0, 0), (-1, -1), 12),
-                ('TOPPADDING', (0, 0), (-1, -1), 8),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
-                ('BOX', (0, 0), (-1, -1), 1, border_color),
+                ('LEFTPADDING', (0, 0), (-1, -1), 10),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+                ('TOPPADDING', (0, 0), (-1, -1), 6),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                ('BOX', (0, 0), (-1, -1), 1.5, border_color),  # Slightly thicker border
+                ('GRID', (0, 0), (-1, -1), 0.5, border_color),  # Add subtle grid lines
             ]))
             elements.append(code_table)
         
@@ -515,32 +522,49 @@ class PDFCompiler:
         
         return line
     
-    def _wrap_long_code_line(self, line: str, max_length: int = 80) -> list:
-        """Wrap long code lines to prevent overflow in PDF"""
+    def _wrap_long_code_line(self, line: str, max_length: int = 65) -> list:
+        """Wrap long code lines to prevent overflow in PDF with better line breaking"""
         
+        # Reduce max length for better fitting in PDF
         if len(line) <= max_length:
             return [line]
         
         wrapped_lines = []
-        current_line = line
+        current_line = line.rstrip()
         
         while len(current_line) > max_length:
             # Find a good break point (prefer spaces, then operators)
             break_point = max_length
             
-            # Look for a space to break at (going backwards from max_length)
-            for i in range(max_length, max(0, max_length - 20), -1):
-                if current_line[i] in [' ', ',', ';', ')', '}', ']']:
+            # Look for natural break points going backwards from max_length
+            for i in range(min(max_length, len(current_line)-1), max(0, max_length - 30), -1):
+                if i < len(current_line) and current_line[i] in [' ', ',', ';', ')', '}', ']', '.', '=', '+', '-']:
                     break_point = i + 1
                     break
             
-            # If no good break point found, force break at max_length
+            # If no good break point found, check for word boundaries
+            if break_point == max_length:
+                for i in range(min(max_length, len(current_line)-1), max(0, max_length - 15), -1):
+                    if i < len(current_line) and current_line[i] == ' ':
+                        break_point = i + 1
+                        break
+            
+            # Force break if still too long
             if break_point == max_length and len(current_line) > max_length:
-                break_point = max_length
+                break_point = max_length - 3  # Leave room for continuation marker
             
             # Add the wrapped line
-            wrapped_lines.append(current_line[:break_point])
-            current_line = "    " + current_line[break_point:].lstrip()  # Indent continuation
+            wrapped_part = current_line[:break_point].rstrip()
+            wrapped_lines.append(wrapped_part)
+            
+            # Prepare the next line with proper indentation
+            remaining = current_line[break_point:].lstrip()
+            if remaining:
+                # Add indentation for continuation, but don't exceed reasonable indentation
+                indent = "  "  # Simpler indentation
+                current_line = indent + remaining
+            else:
+                break
         
         # Add the remaining part
         if current_line.strip():
